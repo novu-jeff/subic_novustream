@@ -110,7 +110,7 @@
                                     </td>
                                     <td>
                                         {{ !empty($row->bill_period_to)
-                                            ? \Carbon\Carbon::parse($row->created_at)->format('M d, Y')
+                                            ? \Carbon\Carbon::parse($row->bill_period_to)->format('M d, Y')
                                             : 'N/A' }}
                                     </td>
                                     <td>
