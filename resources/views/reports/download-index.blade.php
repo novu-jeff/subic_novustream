@@ -51,11 +51,11 @@
 
         <div class="row">
             <div class="col-md-3">
-                <label class="form-label">Start Date (optional)</label>
+                <label class="form-label">Start Date</label>
                 <input type="date" name="start_date" class="form-control">
             </div>
             <div class="col-md-3">
-                <label class="form-label">End Date (optional)</label>
+                <label class="form-label">End Date</label>
                 <input type="date" name="end_date" class="form-control">
             </div>
 
@@ -72,10 +72,10 @@
             </div>
 
 
-            <div class="col-md-3">
+            <!-- <div class="col-md-3">
                 <label class="form-label">Classification (optional)</label>
                 <input type="text" name="classification" class="form-control">
-            </div>
+            </div> -->
         </div>
 
         <div class="mt-4">

@@ -982,6 +982,34 @@ class ReadingController extends Controller
         }
     }
 
+    public function orWalkinShow(string $reference_no)
+    {
+        $data = $this->meterService::getBill($reference_no);
+
+        if (isset($data['status']) && $data['status'] === 'error') {
+            return redirect()->route('reading.index')->with('alert', [
+                'status' => 'error',
+                'message' => 'Bill Not Found'
+            ]);
+        }
+
+        // 🔑 Property type from concessioner_accounts
+        $propertyType = strtoupper(
+            $data['current_bill']['reading']['concessioner_account']['property_type'] ?? ''
+        );
+
+        // 🧮 Walk-in fee logic
+        $isResidential = str_contains($propertyType, 'RESIDENTIAL 1/2');
+
+        $walkInFee = $isResidential ? 8.00 : 23.00;
+
+        return view('reading.orwalkin', [
+            'data'         => $data,
+            'reference_no' => $reference_no,
+            'walkInFee'    => $walkInFee,
+            'propertyType' => $propertyType,
+        ]);
+    }
 
 
 }

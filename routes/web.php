@@ -78,6 +78,9 @@ Route::middleware('auth:admins')->prefix('admin')->group(function () {
     Route::get('reading/invoice/{reference_no}', [ReadingController::class, 'invoice'])
         ->name('reading.invoice');
 
+    Route::get('/reading/or-walkin/{reference_no}', [ReadingController::class, 'orWalkinShow'])
+    ->name('reading.or.walkin');
+
     Route::get('/reading/or/{reference_no}', [ReadingController::class, 'orShow'])
         ->name('reading.orshow');
 
