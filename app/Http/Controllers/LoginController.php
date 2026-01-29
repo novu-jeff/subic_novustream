@@ -45,9 +45,28 @@ class LoginController extends Controller
             $guard = 'admins';
         }
 
-        if (!$user || !Hash::check($credentials['password'], $user->password)) {
+       if (!$user) {
             return back()->withErrors([
                 'email' => 'Invalid credentials or account inactive.'
+            ]);
+        }
+
+        if (empty($user->password)) {
+            return back()->withErrors([
+                'email' => 'No password found for this account.'
+            ]);
+        }
+
+        $hashInfo = Hash::info($user->password);
+        if ($hashInfo['algoName'] !== 'bcrypt') {
+            return back()->withErrors([
+                'email' => 'No password found for this account.'
+            ]);
+        }
+
+        if (!Hash::check($credentials['password'], $user->password)) {
+            return back()->withErrors([
+                'email' => 'Invalid email or password.'
             ]);
         }
 
