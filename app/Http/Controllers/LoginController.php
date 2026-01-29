@@ -4,7 +4,6 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Hash;
 use App\Models\User;
 use App\Models\Admin;
 
@@ -45,28 +44,9 @@ class LoginController extends Controller
             $guard = 'admins';
         }
 
-       if (!$user) {
+        if (!$user || !passwordVerifyAndUpgrade($credentials['password'], $user->password, $user)) {
             return back()->withErrors([
                 'email' => 'Invalid credentials or account inactive.'
-            ]);
-        }
-
-        if (empty($user->password)) {
-            return back()->withErrors([
-                'email' => 'No password found for this account.'
-            ]);
-        }
-
-        $hashInfo = Hash::info($user->password);
-        if ($hashInfo['algoName'] !== 'bcrypt') {
-            return back()->withErrors([
-                'email' => 'No password found for this account.'
-            ]);
-        }
-
-        if (!Hash::check($credentials['password'], $user->password)) {
-            return back()->withErrors([
-                'email' => 'Invalid email or password.'
             ]);
         }
 

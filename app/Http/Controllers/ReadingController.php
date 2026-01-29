@@ -246,8 +246,8 @@ class ReadingController extends Controller
                 ]);
             }
         } else {
-            // $url = env('NOVUPAY_URL') . '/payment/merchants/' . $reference_no;
-            $url = 'https://staritawaterdistrictpamp.gov.ph/'; // ✅ Fallback NovuPay link (temporary)
+            $url = env('NOVUPAY_URL') . '/payment/merchants/' . $reference_no;
+            // $url = 'https://staritawaterdistrictpamp.gov.ph/'; // ✅ Fallback NovuPay link (temporary)
         }
 
 

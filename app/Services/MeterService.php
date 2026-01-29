@@ -370,10 +370,13 @@ class MeterService {
 
         if ($zone === 'all') {
             if (!empty($date)) {
-                return $bills->groupBy(fn($bill) => $bill->created_at->toDateString())
-                            ->map(fn($group) => $group->values())
-                            ->values()
-                            ->all();
+                return $bills->groupBy(function ($bill) {
+                        $created = $bill->created_at ?? optional($bill->reading)->created_at;
+                        return $created ? $created->toDateString() : 'Unknown';
+                    })
+                    ->map(fn($group) => $group->values())
+                    ->values()
+                    ->all();
             }
 
             return $bills->values();
@@ -384,7 +387,10 @@ class MeterService {
                 if (!empty($date)) {
                     return array_values(
                         $groupedByZone
-                            ->groupBy(fn($bill) => $bill->created_at->toDateString())
+                            ->groupBy(function ($bill) {
+                                $created = $bill->created_at ?? optional($bill->reading)->created_at;
+                                return $created ? $created->toDateString() : 'Unknown';
+                            })
                             ->map(fn($groupedByDate) => $groupedByDate->values())
                             ->values()
                             ->all()

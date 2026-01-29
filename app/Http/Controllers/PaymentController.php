@@ -733,9 +733,19 @@ class PaymentController extends Controller
                 return null;
             }
             $days_before_due = 15;
-            $due_date = !empty($billData['due_date'])
-            ? Carbon::parse($billData['due_date'])->endOfDay()->format('Y-m-d H:i:s')
-            : Carbon::now()->addDays($days_before_due)->endOfDay()->format('Y-m-d H:i:s');
+            if (!empty($billData['due_date'])) {
+                $due = Carbon::parse($billData['due_date'])->endOfDay();
+            } else {
+                $due = Carbon::now()->addDays($days_before_due)->endOfDay();
+            }
+
+            // HitPay requires expiry_date to be in the future – clamp if bill is already overdue
+            $now = Carbon::now();
+            if ($due->lessThanOrEqualTo($now)) {
+                $due = $now->copy()->addHours(1);
+            }
+
+            $due_date = $due->format('Y-m-d H:i:s');
 
 
             // dd($billData);
