@@ -90,8 +90,8 @@ class PreviousBillingImport implements
             'previous_reading' => $get(['previous_reading']) ?? 0,
             'present_reading'  => $get(['present_reading']) ?? 0,
             'consumption'      => $get(['consumption']) ?? 0,
-            'created_at'       => $billing_from,
-            'updated_at'       => $billing_from,
+            'created_at'       => $billing_to,
+            'updated_at'       => $billing_to,
         ]);
 
         $currentBillValue = $get(['current_bill']);
