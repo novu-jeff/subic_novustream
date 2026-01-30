@@ -104,7 +104,7 @@
                 color:#777;
                 margin-top:4px;
             ">
-                {{ $propertyType }}
+                {{ $propertyTypeName }}
             </div>
 
         </div>
