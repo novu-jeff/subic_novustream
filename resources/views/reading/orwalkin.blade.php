@@ -23,7 +23,6 @@
         }
 
         .thermal-receipt {
-            position: relative;
             width: 80mm;
             margin: 0 auto;
             padding: 4mm 5mm;
@@ -31,29 +30,6 @@
             font-size: 9px;
             color: #000;
             background: #fff;
-            text-align: center;
-        }
-
-        .thermal-receipt::before {
-            content: "";
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            width: 60mm;
-            height: 60mm;
-            background-image: url("{{ asset('images/novu.png') }}");
-            background-size: contain;
-            background-repeat: no-repeat;
-            background-position: center;
-            opacity: 0.2;
-            transform: translate(-50%, -50%);
-            pointer-events: none;
-            z-index: 0;
-        }
-
-        .thermal-receipt * {
-            position: relative;
-            z-index: 1;
         }
 
         .thermal-receipt h4 {
@@ -91,8 +67,23 @@
         }
 
         .divider {
-            border-top: 1px dashed #000;
+            display: flex;
+            align-items: center;
+            text-align: center;
             margin: 2mm 0;
+        }
+
+        .divider::before,
+        .divider::after {
+            content: "";
+            flex: 1;
+            border-top: 1px dashed #000;
+        }
+
+        .divider span {
+            padding: 0 10px;
+            font-weight: 600;
+            white-space: nowrap;
         }
 
         .ref-label {
@@ -100,16 +91,18 @@
         }
 
         .ref-no {
-            font-size: 10px;
+            font-size: 11px;
             font-weight: 600;
             letter-spacing: 0.5px;
-            margin-top: 1mm;
+            margin-top: 5mm;
+            text-align: center;
         }
 
         .footer {
             font-size: 8px;
             margin-top: 2mm;
             font-style: italic;
+            text-align: center;
         }
 
         /* ===============================
@@ -137,6 +130,33 @@
                 font-size: 8.5px;
             }
         }
+
+        .thermal-receipt {
+            position: relative;
+        }
+
+        .watermark {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 60mm;
+            opacity: 0.15;
+            transform: translate(-50%, -50%);
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        .thermal-receipt > *:not(.watermark) {
+            position: relative;
+            z-index: 1;
+        }
+
+        @media print {
+            .watermark {
+                display: block !important;
+            }
+        }
+
     </style>
 </head>
 
@@ -177,21 +197,33 @@
     {{-- RECEIPT --}}
     <div id="bill">
         <div class="thermal-receipt">
+            <img
+                src="{{ asset('images/novu.png') }}"
+                class="watermark"
+                alt="Watermark Logo">
 
-            <h4>Official Receipt</h4>
-            <div class="sub-title">Walk-In Payment</div>
+            <h4 class="text-center">Official Receipt</h4>
+            <div class="divider"></div>
 
-            <div class="date">
-                {{ \Carbon\Carbon::now('Asia/Manila')->format('F d, Y') }}
+            <div class="fw-bold mb-2">
+                {{$accountNo}}
             </div>
 
-            <div>
-                <p>{{$accountNo}} | {{$name}}</p>
+            <div class="fw-bold mb-2">
+                {{$name}}
             </div>
 
-            <div class="amount-label">Amount Paid</div>
-            <div class="amount">
-                ₱ {{ number_format($walkInFee, 2) }}
+             <div class="fw-bold mb-2">
+                {{$address}}
+            </div>
+
+            <div class="divider">
+                <span class=" px-2">Walk-In Payment</span>
+            </div>
+
+            <div class="date d-flex justify-content-between">
+                <span>Date Paid</span>
+                <span>{{ \Carbon\Carbon::now('Asia/Manila')->format('F d, Y') }}</span>
             </div>
 
             <div class="property">
@@ -200,8 +232,14 @@
 
             <div class="divider"></div>
 
-            <div class="ref-label">Reference No.</div>
-            <div class="ref-no">{{ $reference_no }}</div>
+            <div class="date d-flex justify-content-between">
+                <span>Walk-in Payment</span>
+                <span>₱ {{ number_format($walkInFee, 2) }}</span>
+            </div>
+
+            <div class="divider"></div>
+
+            <div class="ref-no"">Reference No. {{ $reference_no }}</div>
 
             <div class="footer">
                 This receipt acknowledges payment received
