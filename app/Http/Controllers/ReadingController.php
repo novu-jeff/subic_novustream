@@ -26,6 +26,7 @@ use App\Models\Discount;
 use App\Models\DiscountType;
 use App\Models\PaymentBreakdownPenalty;
 use App\Models\PartialPayment;
+use App\Models\PropertyTypes;
 
 
 class ReadingController extends Controller
@@ -993,23 +994,26 @@ class ReadingController extends Controller
             ]);
         }
 
-        // 🔑 Property type from concessioner_accounts
-        $propertyType = strtoupper(
-            $data['current_bill']['reading']['concessioner_account']['property_type'] ?? ''
-        );
+        $accountNo = $data['current_bill']['reading']['account_no'] ?? '';
 
-        // 🧮 Walk-in fee logic
-        $isResidential = str_contains($propertyType, 'RESIDENTIAL 1/2');
+        $rateCode = null;
+        if (preg_match('/^\d{3}-(\d{2})-\d+$/', $accountNo, $matches)) {
+            $rateCode = $matches[1];
+        }
 
+        $isResidential = $rateCode === '12';
         $walkInFee = $isResidential ? 8.00 : 23.00;
 
+        $propertyTypeName = PropertyTypes::where('rate_code', $rateCode)
+            ->value('name') ?? 'Unknown Property Type';
+
         return view('reading.orwalkin', [
-            'data'         => $data,
-            'reference_no' => $reference_no,
-            'walkInFee'    => $walkInFee,
-            'propertyType' => $propertyType,
+            'data'              => $data,
+            'reference_no'      => $reference_no,
+            'walkInFee'         => $walkInFee,
+            'rateCode'          => $rateCode,
+            'propertyTypeName'  => $propertyTypeName,
         ]);
     }
-
 
 }
