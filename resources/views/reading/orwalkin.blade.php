@@ -23,6 +23,7 @@
         }
 
         .thermal-receipt {
+            position: relative;
             width: 80mm;
             margin: 0 auto;
             padding: 4mm 5mm;
@@ -31,6 +32,28 @@
             color: #000;
             background: #fff;
             text-align: center;
+        }
+
+        .thermal-receipt::before {
+            content: "";
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 60mm;
+            height: 60mm;
+            background-image: url("{{ asset('images/novu.png') }}");
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: center;
+            opacity: 0.2;
+            transform: translate(-50%, -50%);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .thermal-receipt * {
+            position: relative;
+            z-index: 1;
         }
 
         .thermal-receipt h4 {
@@ -156,7 +179,15 @@
         <div class="thermal-receipt">
 
             <h4>Official Receipt</h4>
-            <div class="sub-title">Walk-In Payment | {{ \Carbon\Carbon::now('Asia/Manila')->format('F d, Y') }}</div>
+            <div class="sub-title">Walk-In Payment</div>
+
+            <div class="date">
+                {{ \Carbon\Carbon::now('Asia/Manila')->format('F d, Y') }}
+            </div>
+
+            <div>
+                <p>{{$accountNo}} | {{$name}}</p>
+            </div>
 
             <div class="amount-label">Amount Paid</div>
             <div class="amount">
@@ -169,7 +200,8 @@
 
             <div class="divider"></div>
 
-            <div class="ref-label">Reference No. {{ $reference_no }}</div>
+            <div class="ref-label">Reference No.</div>
+            <div class="ref-no">{{ $reference_no }}</div>
 
             <div class="footer">
                 This receipt acknowledges payment received
