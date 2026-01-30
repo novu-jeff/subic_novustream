@@ -995,6 +995,7 @@ class ReadingController extends Controller
         }
 
         $accountNo = $data['current_bill']['reading']['account_no'] ?? '';
+        $name = $data['client']['name'] ?? '';
 
         $rateCode = null;
         if (preg_match('/^\d{3}-(\d{2})-\d+$/', $accountNo, $matches)) {
@@ -1013,6 +1014,8 @@ class ReadingController extends Controller
             'walkInFee'         => $walkInFee,
             'rateCode'          => $rateCode,
             'propertyTypeName'  => $propertyTypeName,
+            'accountNo'         => $accountNo,
+            'name'              => $name,
         ]);
     }
 
