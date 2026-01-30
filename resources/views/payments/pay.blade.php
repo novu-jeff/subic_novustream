@@ -583,21 +583,23 @@
                                     </div>
                                 </div>
                             @else
-                                <div class="bg-primary d-flex align-items-center justify-content-center mt-4 p-3 text-uppercase fw-bold text-white">
+                                <div class="bg-primary rounded d-flex align-items-center justify-content-center mt-4 p-3 text-uppercase fw-bold text-white">
                                     <h3 class="ms-2 mb-0 text-center">
                                         Already Paid
                                     </h3>
                                 </div>
-                                <div style="margin-top: 8px;">
+                                <div class="d-flex flex-column flex-md-row gap-3 justify-content-center mt-3">
                                     <a href="{{ route('reading.orshow', ['reference_no' => $reference_no]) }}"
-                                    style="background-color: #32667e; color: white; padding: 12px 40px; text-align:center; text-transform: uppercase; display: inline-flex; align-items: center; gap: 8px; border: none; border-radius: 5px; cursor: pointer; text-decoration: none;">
+                                    class="btn btn-outline-primary px-4 py-2 fw-semibold text-uppercase shadow-sm">
+                                        <i class="bx bx-printer me-2"></i>
                                         Generate Official Receipt
                                     </a>
+                                    <a href="{{ route('reading.or.walkin', $reference_no) }}"
+                                    class="btn btn-primary px-4 py-2 fw-semibold text-uppercase shadow-sm">
+                                        <i class="bx bx-receipt me-2"></i>
+                                        Walk-In OR
+                                    </a>
                                 </div>
-                                <a href="{{ route('reading.or.walkin', $reference_no) }}"
-                                    class="btn btn-success">
-                                <i class="bx bx-receipt"></i> Walk-in OR
-                                </a>
                             @endif
                         </div>
                     </div>
