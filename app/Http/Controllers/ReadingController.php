@@ -510,9 +510,9 @@ class ReadingController extends Controller
         ], 400);
     }
 
-    $isTemporaryBillingOverride =
-    $date->year === 2026 &&
-    $date->month === 1; // January 2026 billing only
+    // $isTemporaryBillingOverride =
+    // $date->year === 2026 &&
+    // $date->month === 1; // January 2026 billing only
 
     $month = $date->month;
     $year = $date->year;
@@ -618,89 +618,89 @@ class ReadingController extends Controller
         $penaltyAmount = 0;
 
         //disposable
-        $billPeriodFrom = null;
-        $billPeriodTo = null;
-        $billDate = null;
-        $dueDate = null;
-        $penaltyDate = null;
-        $disconnectionDate = null;
+        // $billPeriodFrom = null;
+        // $billPeriodTo = null;
+        // $billDate = null;
+        // $dueDate = null;
+        // $penaltyDate = null;
+        // $disconnectionDate = null;
 
-        if ($isTemporaryBillingOverride) {
+        // if ($isTemporaryBillingOverride) {
 
-            $prefix = substr($account_no, 0, 3);
+        //     $prefix = substr($account_no, 0, 3);
 
-            $bookRules = [
-                'B1-B5' => [
-                    'prefixes' => ['011','021','031','041','051'],
-                    'from' => '2025-12-01',
-                    'to'   => '2026-01-03',
-                    'bill_day' => '2026-01-03',
-                ],
-                'B6-B8' => [
-                    'prefixes' => ['061','071','081'],
-                    'from' => '2025-12-02',
-                    'to'   => '2026-01-05',
-                    'bill_day' => '2026-01-05',
-                ],
-                'B9-B11' => [
-                    'prefixes' => ['091','101','111'],
-                    'from' => '2025-12-03',
-                    'to'   => '2026-01-06',
-                    'bill_day' => '2026-01-06',
-                ],
-            ];
+        //     $bookRules = [
+        //         'B1-B5' => [
+        //             'prefixes' => ['011','021','031','041','051'],
+        //             'from' => '2025-12-01',
+        //             'to'   => '2026-01-03',
+        //             'bill_day' => '2026-01-03',
+        //         ],
+        //         'B6-B8' => [
+        //             'prefixes' => ['061','071','081'],
+        //             'from' => '2025-12-02',
+        //             'to'   => '2026-01-05',
+        //             'bill_day' => '2026-01-05',
+        //         ],
+        //         'B9-B11' => [
+        //             'prefixes' => ['091','101','111'],
+        //             'from' => '2025-12-03',
+        //             'to'   => '2026-01-06',
+        //             'bill_day' => '2026-01-06',
+        //         ],
+        //     ];
 
-            foreach ($bookRules as $rule) {
-                if (in_array($prefix, $rule['prefixes'])) {
+        //     foreach ($bookRules as $rule) {
+        //         if (in_array($prefix, $rule['prefixes'])) {
 
-                    $billPeriodFrom = Carbon::parse($rule['from']);
-                    $billPeriodTo   = Carbon::parse($rule['to']);
-                    $billDate       = Carbon::parse($rule['bill_day']);
-                    $dueDate        = $billDate->copy()->addDays(15);
-                    $penaltyDate    = $dueDate->copy()->addDay();
-                    $disconnectionDate = $dueDate->copy()->addDays(7);
-                    break;
-                }
-            }
-        }
+        //             $billPeriodFrom = Carbon::parse($rule['from']);
+        //             $billPeriodTo   = Carbon::parse($rule['to']);
+        //             $billDate       = Carbon::parse($rule['bill_day']);
+        //             $dueDate        = $billDate->copy()->addDays(15);
+        //             $penaltyDate    = $dueDate->copy()->addDay();
+        //             $disconnectionDate = $dueDate->copy()->addDays(7);
+        //             break;
+        //         }
+        //     }
+        // }
 
-        // Save bill
-        // $bill = Bill::updateOrCreate(
-        //     ['reference_no' => $reference_no],
-        //     [
-        //         'account_no' => $account_no,
-        //         'amount' => $amount + $penaltyAmount,
-        //         'penalty' => $penaltyAmount,
-        //         'discount' => $computed['bill']['discount'] ?? 0,
-        //         'amount_after_due' => $computed['bill']['amount_after_due'] ?? $amount,
-        //         'high_consumption_note' => $payload['high_consumption_note'] ?? null,
-        //     ]
-        // );
-
+        //Save bill
         $bill = Bill::updateOrCreate(
             ['reference_no' => $reference_no],
-            array_filter([
+            [
                 'account_no' => $account_no,
                 'amount' => $amount + $penaltyAmount,
                 'penalty' => $penaltyAmount,
                 'discount' => $computed['bill']['discount'] ?? 0,
                 'amount_after_due' => $computed['bill']['amount_after_due'] ?? $amount,
                 'high_consumption_note' => $payload['high_consumption_note'] ?? null,
-
-                // TEMPORARY OVERRIDE
-                'bill_period_from' => $billPeriodFrom,
-                'bill_period_to' => $billPeriodTo,
-                'created_at' => $billDate,
-                'due_date' => $dueDate,
-                'penalty_date' => $penaltyDate,
-                'disconnection_date' => $disconnectionDate,
-            ])
+            ]
         );
 
-        $bill->created_at = $billDate;
-        $bill->saveQuietly();
+        // $bill = Bill::updateOrCreate(
+        //     ['reference_no' => $reference_no],
+        //     array_filter([
+        //         'account_no' => $account_no,
+        //         'amount' => $amount + $penaltyAmount,
+        //         'penalty' => $penaltyAmount,
+        //         'discount' => $computed['bill']['discount'] ?? 0,
+        //         'amount_after_due' => $computed['bill']['amount_after_due'] ?? $amount,
+        //         'high_consumption_note' => $payload['high_consumption_note'] ?? null,
 
-        $today = Carbon::today();
+        //         // TEMPORARY OVERRIDE
+        //         'bill_period_from' => $billPeriodFrom,
+        //         'bill_period_to' => $billPeriodTo,
+        //         'created_at' => $billDate,
+        //         'due_date' => $dueDate,
+        //         'penalty_date' => $penaltyDate,
+        //         'disconnection_date' => $disconnectionDate,
+        //     ])
+        // );
+
+        // $bill->created_at = $billDate;
+        // $bill->saveQuietly();
+
+        // $today = Carbon::today();
 
         $discountRecord = Discount::where('account_no', $account->account_no)
             // ->whereDate('effective_date', '<=', $today)
