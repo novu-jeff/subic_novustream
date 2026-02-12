@@ -474,14 +474,99 @@
                                 <div style="margin: 5px 0 5px 0; width: 100%; height: 1px; border-bottom: 1px dashed black;"></div>
                             </div>
                             @if($viewer === 'receipt' && !empty($payment_url) && !$data['current_bill']['isPaid'])
-                                <div class="d-flex justify-content-center">
-                                    <a href="{{ $payment_url }}"
-                                    target="_blank"
-                                    class="btn btn-success px-5 py-3 text-uppercase fw-bold">
-                                        <i class="bx bx-credit-card"></i> Pay Online
-                                    </a>
+                                <div class="d-flex flex-column align-items-start" style="width: 35%">
+                                    <div class="d-flex justify-content-between" style="width: 100%; gap: 10px;">
+                                        <div style="width: 100%;">
+                                            <a href="{{ $payment_url }}"
+                                            target="_blank"
+                                            class="btn btn-success w-100 px-5 py-3 text-uppercase fw-bold">
+                                                <i class="bx bx-credit-card"></i> Pay Online
+                                            </a>
+                                        </div>
+                                        <div style="width: 110%;">
+                                            <a
+                                                type="button"
+                                                class="btn btn-secondary w-100 px-5 py-3 text-uppercase fw-bold"
+                                                data-bs-toggle="modal"
+                                                data-bs-target="#partialPaymentModal"
+                                                data-reference="{{ $data['current_bill']['reference_no'] }}"
+                                                data-url="{{ route('account-overview.bills.partial', ['reference_no' => '__REF__']) }}">
+                                                <i class="bx bx-credit-card"></i> Pay Partial
+                                            </a>
+                                        </div>
+                                    </div>
+
+                                    @if($data['current_bill']['isPartial'] == 1)
+                                        @php
+                                            $remaining = max(
+                                                $data['current_bill']['total'] - $data['current_bill']['partial_payment'],
+                                                0
+                                            );
+                                        @endphp
+
+                                        <div class="mt-3 p-3 text-center" style="background-color: #f8f9fa; border-radius: 6px;">
+                                            <div style="color:#d9534f; font-weight:bold;">
+                                                Partial Payment: ₱ {{ number_format($data['current_bill']['partial_payment'], 2) }}
+                                            </div>
+                                            <div style="margin-top:5px;">
+                                                Remaining Balance: ₱ {{ number_format($remaining, 2) }}
+                                            </div>
+                                        </div>
+                                    @endif
                                 </div>
                             @endif
+                            <!-- Partial Payment Modal -->
+                            <div class="modal fade" id="partialPaymentModal" tabindex="-1">
+                                <div class="modal-dialog">
+                                    <form method="POST" action="{{ route('account-overview.bills.partial', $reference_no ?? '__REF__') }}" id="partialPaymentForm">
+                                        @csrf
+                                        <div class="modal-content">
+                                            <div class="modal-header">
+                                                <h5 class="modal-title">Partial Payment Online</h5>
+                                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                            </div>
+
+                                            <div class="modal-body">
+                                                <input type="hidden" name="reference_no" id="modal_reference">
+
+                                                <div class="oversized" style="margin: 4px 0 0 0; display: flex; gap: 5px; align-items: center; justify-content: space-between;">
+                                                    <div style="font-size: 15px; font-weight: 600">Account No.</div>
+                                                    <div style="font-size: 15px; font-weight: 600">
+                                                        {{ $data['client']['account_no'] ?? 'N/A' }}
+                                                    </div>
+                                                </div>
+
+                                                <div class="oversized" style="margin: 4px 0 0 0; display: flex; align-items: center; justify-content: space-between;">
+                                                    <div style="font-size: 15px; font-weight: 600">Name</div>
+                                                    <div style="font-size: 15px; font-weight: 600">
+                                                        {{ $data['client']['name'] ?? 'N/A' }}
+                                                    </div>
+                                                </div>
+
+                                                <div class="oversized" style="margin: 4px 0 0 0; display: flex; gap: 5px; align-items: center; justify-content: space-between;">
+                                                    <div style="font-size: 15px; font-weight: 600">Reference No.</div>
+                                                    <div style="font-size: 15px; font-weight: 600; text-transform: uppercase;">
+                                                        {{ $data['current_bill']['reference_no'] ?? 'N/A' }}
+                                                    </div>
+                                                </div>
+                                                <div class="mb-3 mt-5">
+                                                    <label class="form-label">Partial Amount</label>
+                                                    <input type="number" step="0.01" min="1"
+                                                        class="form-control"
+                                                        name="amount"
+                                                        required>
+                                                </div>
+                                            </div>
+
+                                            <div class="modal-footer">
+                                                <button type="submit" class="btn btn-success">
+                                                    Proceed to Payment
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -575,6 +660,26 @@ $(function () {
 
     $('#paymentForm').submit();
 });
+
+});
+
+document.addEventListener('DOMContentLoaded', function () {
+
+    var modal = document.getElementById('partialPaymentModal');
+
+    modal.addEventListener('show.bs.modal', function (event) {
+
+        var button = event.relatedTarget;
+        var reference = button.getAttribute('data-reference');
+        var urlTemplate = button.getAttribute('data-url');
+
+        // Replace placeholder with real reference
+        var finalUrl = urlTemplate.replace('__REF__', reference);
+
+        document.getElementById('partialPaymentForm').action = finalUrl;
+
+        document.getElementById('modal_reference').value = reference;
+    });
 
 });
 </script>

@@ -252,6 +252,8 @@ Route::middleware('auth')->prefix('concessionaire')->group(function() {
             ->name('account-overview.bills');
         Route::get('bills/{reference_no?}', [AccountOverviewController::class, 'bills'])
             ->name('account-overview.bills.reference_no');
+        Route::post('bills/{reference_no}/partial', [AccountOverviewController::class, 'payPartial'])
+            ->name('account-overview.bills.partial');
     });
 
     Route::prefix('/support')->group(function() {
