@@ -476,4 +476,61 @@ public function index()
     return $bill;
 }
 
+
+    public function payPartial(Request $request, string $reference_no)
+    {
+        $request->validate([
+            'amount' => 'required|numeric|min:1'
+        ]);
+
+        $userId = Auth::id();
+        $clientData = $this->clientService::getData($userId);
+
+        $bill = $this->meterService::getBill($reference_no);
+
+        if (!$bill) {
+            return back()->with('alert', [
+                'status' => 'error',
+                'message' => 'Bill not found.'
+            ]);
+        }
+
+        $partialAmount = (float) $request->amount;
+
+        // Add service charges
+        $hitpay_fee = 20;
+        $novupay_fee = 10;
+        $additional_service_fee = $hitpay_fee + $novupay_fee;
+
+        $finalAmount = $partialAmount + $additional_service_fee;
+
+        $payload = [
+            'reference_no' => $reference_no,
+            'amount' => $finalAmount,
+            'customer' => [
+                'name' => $clientData->name ?? '',
+                'account_no' => $bill['current_bill']['account_no'] ?? '',
+                'address' => $bill['current_bill']['address'] ?? '',
+            ],
+            'metadata' => [
+                'partial_payment' => true,
+                'original_amount' => $bill['current_bill']['amount'] ?? 0,
+                'partial_amount' => $partialAmount,
+            ]
+        ];
+
+        $hitpayData = app(\App\Http\Controllers\PaymentController::class)
+            ->createHitpayPaymentRequest($reference_no, $payload);
+
+        if (!$hitpayData || empty($hitpayData['url'])) {
+            return back()->with('alert', [
+                'status' => 'error',
+                'message' => 'Failed to initiate partial payment.'
+            ]);
+        }
+
+        return redirect($hitpayData['url']);
+    }
+
+
 }
