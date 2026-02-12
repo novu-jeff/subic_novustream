@@ -130,7 +130,7 @@ class ReportsController extends Controller
      */
     protected function fetchReportsFromDb(array $reports, $startDate = null, $endDate = null, $zone = null, $classification = null)
     {
-        $result = [];
+        $readingsSheets = [];
 
         foreach ($reports as $report) {
             switch ($report) {
@@ -1125,13 +1125,13 @@ class ReportsController extends Controller
                      * BUILD SHEETS PER ZONE
                      * ===============================
                      */
-                    $result = [];
+                    $readingsSheets = [];
 
                     foreach ($query as $row) {
 
                         $sheetName = 'ZONE ' . $row->zone;
 
-                        $result[$sheetName][] = [
+                        $readingsSheets[$sheetName][] = [
                             'ACCOUNT NUMBER'      => $row->account_no,
                             'NAME'                => $row->concessionaire_name ?? 'N/A',
                             'STATUS'              => $row->status ?? 'N/A',
@@ -1160,13 +1160,19 @@ class ReportsController extends Controller
                             '=',
                             'discount.account_no'
                         )
+                        ->leftJoin('readings', 'concessioner_accounts.account_no', '=', 'readings.account_no')
+                        ->leftJoin('bill', 'bill.reading_id', '=', 'readings.id')
                         ->where('discount.discount_type_id', 1) // Senior Citizen
                         ->whereNotNull('concessioner_accounts.zone')
+                        ->when($zone !== 'all', fn($q) => $q->where('concessioner_accounts.zone', $zone))
+                        ->when($startDate && $endDate, function($q) use ($startDate, $endDate) {
+                            $q->whereBetween('bill.bill_period_to', [$startDate, $endDate]);
+                        })
                         ->groupBy('concessioner_accounts.zone')
                         ->select(
                             'concessioner_accounts.zone as zone',
                             DB::raw('COUNT(DISTINCT discount.account_no) as senior_count'),
-                            DB::raw('SUM(bill.amount) as total_amount') // 👈 CHANGE COLUMN IF NEEDED
+                            DB::raw('COALESCE(SUM(bill.amount), 0) as total_amount')
                         )
                         ->orderBy('concessioner_accounts.zone', 'asc')
                         ->get();
@@ -1175,9 +1181,9 @@ class ReportsController extends Controller
 
                     foreach ($query as $row) {
                         $rows[] = [
-                            'ZONE'            => $row->zone ?? 'N/A',
-                            'NO. OF SENIORS'  => $row->senior_count,
-                            'TOTAL AMOUNT'   => number_format($row->total_amount ?? 0, 2),
+                            'ZONE'           => $row->zone ?? 'N/A',
+                            'NO. OF SENIORS' => $row->senior_count,
+                            'TOTAL AMOUNT'  => number_format($row->total_amount ?? 0, 2),
                         ];
                     }
 
@@ -1246,7 +1252,7 @@ class ReportsController extends Controller
                  * BUILD ACTIVE / INACTIVE + ZONE GROUPS
                  * =====================================
                  */
-                $result = [
+                $activeInactiveSheets = [
                     'ACTIVE CONCESSIONAIRES'   => [],
                     'INACTIVE CONCESSIONAIRES' => [],
                 ];
@@ -1283,7 +1289,7 @@ class ReportsController extends Controller
                     }
 
                     // DATA ROW
-                    $result[$sheet][] = [
+                    $activeInactiveSheets[$sheet][] = [
                         'NO.'           => $zoneCounter[$sheet][$row->zone]++,
                         'ACCOUNT NO.'   => $row->account_no,
                         'CUSTOMER NAME' => $row->customer_name ?? 'N/A',
@@ -1295,6 +1301,10 @@ class ReportsController extends Controller
                         'TOTAL'         => $row->total ?: 0,
                         'OVER PAYT'     => $row->over_payt ?: 0,
                     ];
+                }
+
+                foreach ($activeInactiveSheets as $sheetName => $sheetRows) {
+                    $result[$sheetName] = $sheetRows;
                 }
 
                 break;
@@ -1737,7 +1747,6 @@ class ReportsController extends Controller
 
                 $result[$report] = $rows;
                 break;
-
 
                 default:
                     $result[$report] = [];
