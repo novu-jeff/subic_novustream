@@ -117,7 +117,11 @@ class ReportsController extends Controller
         }
 
         $fileName = 'combined-reports-' . now()->format('Ymd_His') . '.' . $format;
-        $filePath = storage_path("app/reports/{$fileName}");
+        $reportDir = storage_path('app/reports');
+        if (!is_dir($reportDir)) {
+            mkdir($reportDir, 0755, true);
+        }
+        $filePath = "{$reportDir}/{$fileName}";
 
         $writer = $format === 'csv' ? new Csv($spreadsheet) : new Xlsx($spreadsheet);
         $writer->save($filePath);

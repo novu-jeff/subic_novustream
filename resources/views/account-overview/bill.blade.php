@@ -164,7 +164,7 @@
 
 
             @if($viewer == 'receipt')
-                <div style="padding-bottom: 50px padding-top: 50px">
+                <div style="padding-bottom: 50px; padding-top: 50px">
                     <div id="bill" style="margin-top: 30px">
                         <div class="bill-container d-flex flex-row align-items-start">
                             <div style="position: relative; width: 100%; max-width: 450px; margin: 0 auto; padding: 25px; background: white; border-radius: 5px; box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);">
@@ -174,22 +174,22 @@
                                     </div>
                                 @endif
                                 @php
-                                    $logoPath = public_path('images/client.png');
+                                    $logoPath = public_path(config('app.client_logo'));
 
                                     $base64 = 'data:image/png;base64,' . base64_encode(file_get_contents($logoPath));
                                 @endphp
 
                                 <div style="text-align: center; margin-top: 18px; margin-bottom: 10px; padding-bottom: 10px; display: flex; justify-content: center; align-items: center; gap: 5px;">
                                     <div>
-                                        <img src="{{ asset('images/client.png')}}"
+                                        <img src="{{ asset(config('app.client_logo')) }}"
                                             alt="logo" class="web-logo" style="width: 8rem; height: 8rem;">
                                     </div>
                                     <div style="width: fit-content;">
                                         <p style="font-size: 11px; text-transform: uppercase; margin: 0; font-weight: 600">Republic of the Philippines</p>
-                                        <p style="font-size: 15px; text-transform: uppercase; margin: 0; text-transform: uppercase; font-weight: 600">Subic Water District</p>
-                                        <p style="font-size: 12px; text-transform: uppercase; margin: 3px 0 0 0;">Former SubCom Area, Rizal Highway, Subic Bay Freeport Zone, Olongapo, Philippines</p>
-                                        <p style="font-size: 12px; text-transform: uppercase; margin: 0;">Facebook Page: SUBICWATER</p>
-                                        <p style="font-size: 12px; text-transform: uppercase; margin: 0;">Tel No. (047) 252 2963</p>
+                                        <p style="font-size: 15px; text-transform: uppercase; margin: 0; text-transform: uppercase; font-weight: 600">{{ config('app.org_name') }}</p>
+                                        <p style="font-size: 12px; text-transform: uppercase; margin: 3px 0 0 0;">{{ config('app.org_address') }}</p>
+                                        <p style="font-size: 12px; text-transform: uppercase; margin: 0;">{{ config('app.org_contact_line1') }}</p>
+                                        <p style="font-size: 12px; text-transform: uppercase; margin: 0;">{{ config('app.org_contact_line2') }}</p>
                                         <!-- <p style="font-size: 12px; text-transform: uppercase; margin: 0;">TIN 261-304-832-000 Non VAT</p> -->
                                     </div>
                                 </div>

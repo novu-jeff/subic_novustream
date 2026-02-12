@@ -2,7 +2,7 @@
 	<div class="header-content responsive-wrapper">
 		<div class="header-logo">
 			<a href="#" class="nav-link text-uppercase fw-bold">
-				<img src="{{ asset(config('app.product') === 'novustream' ? 'images/poweredByNovulutions.png' : 'images/novusurgelogo.png') }}" alt="" style="width: 100px;">
+				<img src="{{ asset(config('app.subic_branding') ? 'images/client.png' : (config('app.product') === 'novustream' ? 'images/poweredByNovulutions.png' : 'images/novusurgelogo.png')) }}" alt="" style="width: 100px;">
 			</a>
 		</div>
 		<div class="header-navigation">
@@ -34,10 +34,6 @@
 						Offline Mode
 					</button>
 					<ul class="dropdown-menu mt-3">
-						<li><button id="downloadOfflineData" class="btn btn-success">
-								<i class="bx bx-download"></i> Download Offline Data
-							</button>
-						</li>
 						<li><button id="installAppBtn" style="display:block;">📲 Install App</button></li>
 					</ul>
 				</div>

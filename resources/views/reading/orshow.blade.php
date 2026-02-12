@@ -241,7 +241,7 @@
             $currentUrl = url()->current();
             $fallbackUrl = Auth::user()->user_type == 'client' ? route('account-overview.show') : route('reading.index');
             $backUrl = ($previousUrl !== $currentUrl) ? $previousUrl : $fallbackUrl;
-            $logoPath = public_path('images/client.png');
+            $logoPath = public_path(config('app.client_logo'));
             $base64 = 'data:image/png;base64,' . base64_encode(file_get_contents($logoPath));
         @endphp
 

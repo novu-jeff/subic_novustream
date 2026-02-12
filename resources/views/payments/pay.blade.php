@@ -26,23 +26,23 @@
                                         </div>
                                     @endif
                                     @php
-                                        $logoPath = public_path('images/client.png');
+                                        $logoPath = public_path(config('app.client_logo'));
 
                                         $base64 = 'data:image/png;base64,' . base64_encode(file_get_contents($logoPath));
                                     @endphp
 
                                     <div style="text-align: center; margin-top: 18px; margin-bottom: 10px; padding-bottom: 10px; display: flex; justify-content: center; align-items: center; gap: 15px;">
                                         <div>
-                                            <img src="{{ asset('images/client.png')}}"
+                                            <img src="{{ asset(config('app.client_logo')) }}"
                                                 style="width: 90px; margin: 0 auto 10px auto"
                                                 alt="logo" class="web-logo">
                                         </div>
                                         <div style="width: fit-content;">
                                             <p style="font-size: 11px; text-transform: uppercase; margin: 0; font-weight: 600">Republic of the Philippines</p>
-                                            <p style="font-size: 15px; text-transform: uppercase; margin: 0; text-transform: uppercase; font-weight: 600">Subic Water District</p>
-                                            <p style="font-size: 12px; text-transform: uppercase; margin: 3px 0 0 0;">Former SubCom Area, Rizal Highway, Subic Bay Freeport Zone, Olongapo, Philippines</p>
-                                            <p style="font-size: 12px; text-transform: uppercase; margin: 0;">Facebook Page: SUBICWATER</p>
-                                            <p style="font-size: 12px; text-transform: uppercase; margin: 0;">Tel No. (047) 252 2963</p>
+                                            <p style="font-size: 15px; text-transform: uppercase; margin: 0; text-transform: uppercase; font-weight: 600">{{ config('app.org_name') }}</p>
+                                            <p style="font-size: 12px; text-transform: uppercase; margin: 3px 0 0 0;">{{ config('app.org_address') }}</p>
+                                            <p style="font-size: 12px; text-transform: uppercase; margin: 0;">{{ config('app.org_contact_line1') }}</p>
+                                            <p style="font-size: 12px; text-transform: uppercase; margin: 0;">{{ config('app.org_contact_line2') }}</p>
                                             <!-- <p style="font-size: 12px; text-transform: uppercase; margin: 0;">TIN 261-304-832-000 Non VAT</p> -->
                                         </div>
                                     </div>

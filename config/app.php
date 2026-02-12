@@ -21,6 +21,22 @@ return [
     'name' => env('APP_NAME', 'Laravel'),
     'product' => env('APP_PRODUCT', 'novustream'),
     'client' => env('CLIENT'),
+    'subic_branding' => filter_var(env('SUBIC_BRANDING', true), FILTER_VALIDATE_BOOLEAN),
+    'client_logo' => filter_var(env('SUBIC_BRANDING', true), FILTER_VALIDATE_BOOLEAN) ? 'images/client.png' : 'images/novustreamlogo.png',
+
+    // Organization branding (when SUBIC_BRANDING=false, use Novustream white-label)
+    'org_name' => filter_var(env('SUBIC_BRANDING', true), FILTER_VALIDATE_BOOLEAN)
+        ? 'Subic Water District'
+        : 'Novustream Water District',
+    'org_address' => filter_var(env('SUBIC_BRANDING', true), FILTER_VALIDATE_BOOLEAN)
+        ? 'Former SubCom Area, Rizal Highway, Subic Bay Freeport Zone, Olongapo, Philippines'
+        : '35th Floor, Eco Tower, 9th Ave. Corner 32nd St., Bonifacio Global City, Taguig, Philippines',
+    'org_contact_line1' => filter_var(env('SUBIC_BRANDING', true), FILTER_VALIDATE_BOOLEAN)
+        ? 'Facebook Page: SUBICWATER'
+        : 'Email: support@novulutions.com',
+    'org_contact_line2' => filter_var(env('SUBIC_BRANDING', true), FILTER_VALIDATE_BOOLEAN)
+        ? 'Tel No. (047) 252 2963'
+        : 'Tel: (02) 8888-1234',
     'offline_api_key' => env('OFFLINE_API_KEY'),
 
     /*
