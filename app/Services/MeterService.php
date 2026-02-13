@@ -484,6 +484,15 @@ class MeterService {
         $previousConsumption = self::previousConsumption($account_no, $bill_period_from);
         unset($client['accounts']);
 
+        // Freeze visible SOA/bill identity to bill snapshot data.
+        // Fallback to legacy fields for old records without snapshots.
+        $client['name'] = !empty(trim((string) $current_bill->bill_owner_name))
+            ? $current_bill->bill_owner_name
+            : (!empty(trim((string) $current_bill->payor_name)) ? $current_bill->payor_name : ($client['name'] ?? null));
+        $client['account_no'] = $current_bill->bill_account_no ?: ($client['account_no'] ?? $account_no);
+        $client['address'] = $current_bill->bill_address ?: ($client['address'] ?? null);
+        $client['meter_serial_no'] = $current_bill->bill_meter_serial_no ?: ($client['meter_serial_no'] ?? null);
+
         return [
             'client' => $client,
             'current_bill' => $current_bill->toArray() ?? [],
@@ -827,6 +836,14 @@ class MeterService {
 
         $generatedReferenceNo = $this->generateReferenceNo();
 
+        // Snapshot ownership/account details at billing time.
+        // This prevents SOA/bill identity from changing when account ownership is transferred later.
+        $accountHolder = UserAccounts::where('account_no', $payload['account_no'])->with('user')->first();
+        $payorName = $accountHolder && $accountHolder->user ? $accountHolder->user->name : null;
+        $billAccountNo = $payload['account_no'] ?? null;
+        $billAddress = $accountHolder->address ?? null;
+        $billMeterNo = $accountHolder->meter_serial_no ?? null;
+
         $bill = [
             'reference_no' => $generatedReferenceNo,
             'bill_period_from' => $bill_period_from,
@@ -842,6 +859,11 @@ class MeterService {
             'amount_after_due' => $amount_after_due,
             'due_date' => $due_date,
             'isHighConsumption' => $isHighConsumption,
+            'payor_name' => $payorName,
+            'bill_owner_name' => $payorName,
+            'bill_account_no' => $billAccountNo,
+            'bill_address' => $billAddress,
+            'bill_meter_serial_no' => $billMeterNo,
             'created_at' => $bill_period_to,
             'updated_at' => $bill_period_to,
         ];

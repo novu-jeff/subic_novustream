@@ -41,3 +41,41 @@
         opacity: 0;
     }
 }
+
+/* Password visibility toggle - icon inside field */
+.password-input-wrap {
+    position: relative;
+    width: 100%;
+}
+.password-input-wrap .password-toggle-btn {
+    position: absolute;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    padding: 0 0.6rem;
+    border: none;
+    background: transparent;
+    color: #6c757d;
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+}
+.password-input-wrap .password-toggle-btn i {
+    font-size: 1.1rem;
+}
+.password-input-wrap input {
+    padding-right: 2.5rem !important;
+}
+/* Input-group style (e.g. Vue forms) */
+.input-group input[type="password"] + .btn-outline-secondary,
+.input-group input[type="text"] + .btn-outline-secondary {
+    padding: 0.35rem 0.6rem;
+    border-left: 0;
+}
+.input-group .btn-outline-secondary i {
+    font-size: 1rem;
+    line-height: 1;
+}
+.input-group .btn-outline-secondary:last-child {
+    min-width: 38px;
+}

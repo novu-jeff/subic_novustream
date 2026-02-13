@@ -48,6 +48,11 @@
             </div>
             @if($viewer == 'accounts')
                 <div class="inner-content mt-5 pb-5">
+                    <div class="mb-4">
+                        <a href="{{ route('account-enrollment.index') }}" class="btn btn-outline-primary px-4 py-2 text-uppercase">
+                            <i class="bx bx-plus-circle"></i> Enroll Account
+                        </a>
+                    </div>
                     <table class="w-100 table table-bordered table-hover">
                         <thead>
                             <tr>

@@ -275,7 +275,12 @@ document.addEventListener('DOMContentLoaded', function () {
                         </div>
                     </div>
                 @else
-                    <div class="alert alert-primary text-uppercase fw-medium text-center">No data found, Please make sure to have a meter no. connected to this account!</div>
+                    <div class="alert alert-primary text-uppercase fw-medium text-center mb-4">No accounts linked yet. Enroll your service account to view bills and pay online.</div>
+                    <div class="text-center">
+                        <a href="{{ route('account-enrollment.index') }}" class="btn btn-primary px-5 py-3 text-uppercase fw-bold">
+                            <i class="bx bx-plus-circle"></i> Enroll Account
+                        </a>
+                    </div>
                 @endif
             </div>
         </div>

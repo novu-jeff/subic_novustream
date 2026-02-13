@@ -16,6 +16,7 @@
 				@can('concessionaire')
 					<a href="{{route('account-overview.index')}}"> Account Overview </a>
 					<a href="{{route('account-overview.bills')}}"> Bills & Payment </a>
+					<a href="{{route('account-enrollment.index')}}"> Enroll Account </a>
 				@endcan
 				@canany(['admin', 'technician'])
 					<div class="dropdown px-0 mx-0">
@@ -40,20 +41,22 @@
 				@endcanany
 				<script>
 				let deferredPrompt;
-				window.addEventListener('beforeinstallprompt', (e) => {
-				e.preventDefault();
-				deferredPrompt = e;
-				document.getElementById('installAppBtn').style.display = 'block';
-				});
-
-				document.getElementById('installAppBtn').addEventListener('click', async () => {
-				if (deferredPrompt) {
-					deferredPrompt.prompt();
-					const choice = await deferredPrompt.userChoice;
-					console.log('User choice:', choice);
-					deferredPrompt = null;
+				const installAppBtn = document.getElementById('installAppBtn');
+				if (installAppBtn) {
+					window.addEventListener('beforeinstallprompt', (e) => {
+						e.preventDefault();
+						deferredPrompt = e;
+						installAppBtn.style.display = 'block';
+					});
+					installAppBtn.addEventListener('click', async () => {
+						if (deferredPrompt) {
+							deferredPrompt.prompt();
+							const choice = await deferredPrompt.userChoice;
+							console.log('User choice:', choice);
+							deferredPrompt = null;
+						}
+					});
 				}
-				});
 				</script>
 
 				@canany(['admin', 'cashier'])
@@ -68,7 +71,9 @@
 						<ul class="dropdown-menu mt-3">
 							<li><a class="dropdown-item" href="{{route('roles.index')}}">Roles</a></li>
 							<li><a class="dropdown-item" href="{{route('concessionaires.index')}}">Concessionaires</a></li>
+							@can('superadmin')
 							<li><a class="dropdown-item" href="{{route('admins.index')}}">Personnels</a></li>
+							@endcan
 						</ul>
 					</div>
 					<div class="dropdown px-0 mx-0">

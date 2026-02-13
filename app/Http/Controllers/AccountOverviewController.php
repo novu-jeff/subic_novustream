@@ -151,15 +151,27 @@ public function index()
     if ($reference_no) {
     $data = $this->meterService::getBill($reference_no);
 
-    if (!$data) {
-        return redirect()->route('reading.index')->with('alert', [
+    if (!$data || !isset($data['client'])) {
+        return redirect()->route('account-overview.index')->with('alert', [
             'status' => 'error',
             'message' => 'Bill Not Found',
         ]);
     }
 
+    // Concessionaire may only view bills for their enrolled accounts
+    $billAccountNo = $data['client']['account_no'] ?? $data['current_bill']['reading']['account_no'] ?? null;
+    $clientData = $this->clientService::getData($userId);
+    $myAccountNos = collect($clientData->accounts ?? [])->pluck('account_no')->toArray();
+    if ($billAccountNo && !in_array($billAccountNo, $myAccountNos)) {
+        return redirect()->route('account-overview.index')->with('alert', [
+            'status' => 'error',
+            'message' => 'You do not have access to this bill.',
+        ]);
+    }
+
     // Compute penalties
     $data['current_bill'] = $this->computeBillPenalty($data['current_bill']);
+    $currentBill = $data['current_bill'];
 
     // 🧮 Use dynamic penalty computation (from PaymentBreakdownPenalty)
         $amount = (float)($currentBill['total'] ?? 0);
@@ -171,14 +183,14 @@ public function index()
             ->where('due_to', '>=', $currentDay)
             ->first();
 
-        $penalty = $statement['current_bill']['penalty'] ?? 0;
-        $dueDate = isset($data['current_bill']['due_date'])
-                        ? \Carbon\Carbon::parse($data['current_bill']['due_date'])
-                        : null;
+        $penalty = $currentBill['penalty'] ?? 0;
+        $dueDate = isset($currentBill['due_date'])
+            ? \Carbon\Carbon::parse($currentBill['due_date'])
+            : null;
 
         $today = \Carbon\Carbon::today();
 
-        $applicablePenalty = ($dueDate && $today->gt($dueDate)) ? $penalty : 0;
+        $applicablePenalty = ($dueDate && $today->gt($dueDate)) ? (float) $penalty : 0;
 
         // ✅ Always ensure defaults
         $assumedPenalty = 0;
@@ -500,8 +512,8 @@ public function index()
         // Add service charges
         $hitpay_fee = 20;
         $novupay_fee = 10;
-        $additional_service_fee = $hitpay_fee + $novupay_fee;
-
+        // $additional_service_fee = $hitpay_fee + $novupay_fee;
+        $additional_service_fee = 0;
         $finalAmount = $partialAmount + $additional_service_fee;
 
         $payload = [

@@ -41,6 +41,18 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Enrollment Pool User ID (optional)
+    |--------------------------------------------------------------------------
+    |
+    | When set, accounts assigned to this user can be claimed by customers via
+    | self-enrollment. Leave null to only allow enrolling accounts that exist
+    | in readings but have no concessioner_accounts record yet.
+    |
+    */
+    'enrollment_pool_user_id' => env('ENROLLMENT_POOL_USER_ID') ? (int) env('ENROLLMENT_POOL_USER_ID') : null,
+
+    /*
+    |--------------------------------------------------------------------------
     | Application Environment
     |--------------------------------------------------------------------------
     |

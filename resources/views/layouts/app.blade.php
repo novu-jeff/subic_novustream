@@ -45,6 +45,7 @@
     const dot = document.getElementById('status-dot');
     const text = document.getElementById('status-text');
     const bar = document.getElementById('connection-status');
+    if (!dot || !text || !bar) return; // Only technicians have the connection bar
 
     function updateStatus() {
         if (navigator.onLine) {

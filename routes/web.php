@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AccountEnrollmentController;
 use App\Http\Controllers\AccountOverviewController;
 use App\Http\Controllers\ConcessionaireController;
 use App\Http\Controllers\DashboardController;
@@ -43,8 +44,6 @@ Route::get('/login', [LoginController::class, 'index'])
 
 Route::post('/login', [LoginController::class, 'login'])
     ->name('auth.login');
-
-Route::get('/login', [LoginController::class, 'index']);
 
 Route::any('/logout', [LoginController::class, 'logout'])
     ->name('auth.logout');
@@ -255,6 +254,12 @@ Route::middleware('auth')->prefix('concessionaire')->group(function() {
         Route::post('bills/{reference_no}/partial', [AccountOverviewController::class, 'payPartial'])
             ->name('account-overview.bills.partial');
     });
+    Route::get('accounts/enroll', [AccountEnrollmentController::class, 'index'])
+        ->name('account-enrollment.index');
+    Route::post('accounts/enroll/lookup', [AccountEnrollmentController::class, 'lookup'])
+        ->name('account-enrollment.lookup');
+    Route::post('accounts/enroll/verify', [AccountEnrollmentController::class, 'verifyAndEnroll'])
+        ->name('account-enrollment.verify');
 
     Route::prefix('/support')->group(function() {
         Route::prefix('/ticket/submit')->group(function() {
