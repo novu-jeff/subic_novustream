@@ -23,6 +23,7 @@ use App\Http\Controllers\ReportsController;
 use Illuminate\Support\Facades\Artisan;
 use App\Http\Controllers\OfflineSyncController;
 use App\Http\Controllers\OfflineDataController;
+use App\Http\Controllers\Auth\VerificationController;
 
 /*
 |--------------------------------------------------------------------------
@@ -55,6 +56,10 @@ Route::get('/register', [RegisterController::class, 'showRegistrationForm'])
 // Handle register form
 Route::post('/register', [RegisterController::class, 'register'])
     ->name('auth.register.store');
+
+Route::get('/email/verify/{id}/{hash}', [VerificationController::class, 'verify'])
+    ->middleware(['signed', 'throttle:6,1'])
+    ->name('verification.verify');
 
 
 Route::middleware('auth:admins')->prefix('admin')->group(function () {

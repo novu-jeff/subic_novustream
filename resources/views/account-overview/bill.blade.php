@@ -101,7 +101,7 @@
             @if($viewer == 'bills')
                 <div class="inner-content mt-5 pb-5">
                     <ul class="nav nav-pills mb-5" id="pills-tab" role="tablist">
-                        @foreach(['unpaid' => 'Unpaid', 'paid' => 'Paid'] as $key => $label)
+                        @foreach(['unpaid' => 'Unpaid', 'partial' => 'Partial', 'paid' => 'Paid'] as $key => $label)
                             <li class="nav-item" role="presentation">
                                 <a
                                     class="nav-link text-uppercase  {{ $view == $key ? 'active' : '' }}"
@@ -170,9 +170,18 @@
 
             @if($viewer == 'receipt')
                 <div style="padding-bottom: 50px; padding-top: 50px">
+                    @if(($data['current_bill']['isPartial'] ?? 0) == 1)
+                        <div class="alert alert-warning text-uppercase fw-semibold text-center mb-4">
+                            This bill is under partial payment.
+                            Remaining balance: ₱ {{ number_format($data['current_bill']['remaining_balance'] ?? 0, 2) }}
+                        </div>
+                    @endif
                     <div id="bill" style="margin-top: 30px">
                         <div class="bill-container d-flex flex-row align-items-start">
                             <div style="position: relative; width: 100%; max-width: 450px; margin: 0 auto; padding: 25px; background: white; border-radius: 5px; box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);">
+                                <div class="alert alert-secondary py-2 px-3 mb-3 text-uppercase fw-bold text-center" style="font-size: 11px;">
+                                    SOA Snapshot (Fixed)
+                                </div>
                                 @if($data['current_bill']['isPaid'] == true)
                                     <div class="isPaid" style="padding: 10px 30px 10px 30px; position: absolute; right: -10px; top: 4px; text-transform: uppercase; color: red; letter-spacing: 3px; font-size: 12px; font-weight: 600">
                                         PAID
@@ -338,6 +347,11 @@
                                         $advance = $advances;
                                     }
 
+                                    $soaCurrentBilling = max(
+                                        (float)($data['current_bill']['total'] ?? 0) - (float)($data['current_bill']['previous_unpaid'] ?? 0),
+                                        0
+                                    );
+
                                     $amountDue = (float) $data['current_bill']['total']
                                                 - (float) $discount
                                                 - (float) $advance
@@ -353,7 +367,7 @@
                                 <div class="oversized" style="display: flex; justify-content: space-between; margin: 5px 0 5px 0;">
                                     <div style="font-size: 20px; font-weight: 800; text-transform: uppercase">Current Billing:</div>
                                     <div style="font-size: 20px; font-weight: 800; text-transform: uppercase">
-                                        {{number_format($data['current_bill']['total'] - $data['current_bill']['previous_unpaid'], 2)}}
+                                        {{number_format($soaCurrentBilling, 2)}}
                                     </div>
                                 </div>
 
@@ -480,6 +494,9 @@
                             </div>
                             @if($viewer === 'receipt' && !empty($payment_url) && !$data['current_bill']['isPaid'])
                                 <div class="d-flex flex-column align-items-start" style="width: 35%">
+                                    <div class="alert alert-info py-2 px-3 w-100 mb-3 text-uppercase fw-bold text-center" style="font-size: 11px;">
+                                        Payment Summary (Dynamic)
+                                    </div>
                                     <div class="d-flex justify-content-between" style="width: 100%; gap: 10px;">
                                         <div style="width: 100%;">
                                             <a href="{{ $payment_url }}"
@@ -507,6 +524,7 @@
                                                 $data['current_bill']['total'] - $data['current_bill']['partial_payment'],
                                                 0
                                             );
+                                            $partialLedger = $data['current_bill']['partial_ledger'] ?? [];
                                         @endphp
 
                                         <div class="mt-3 p-3 text-center" style="background-color: #f8f9fa; border-radius: 6px;">
@@ -517,6 +535,22 @@
                                                 Remaining Balance: ₱ {{ number_format($remaining, 2) }}
                                             </div>
                                         </div>
+
+                                        @if(!empty($partialLedger))
+                                            <div class="mt-3 p-3" style="background-color: #fff8e1; border-radius: 6px;">
+                                                <div class="fw-bold text-uppercase mb-2">Partial Payment Ledger</div>
+                                                @foreach($partialLedger as $entry)
+                                                    <div class="d-flex justify-content-between" style="font-size: 12px;">
+                                                        <span>{{ \Carbon\Carbon::parse($entry['created_at'])->format('M d, Y h:i A') }}</span>
+                                                        <span>Paid: ₱ {{ number_format($entry['partial_payment'] ?? 0, 2) }}</span>
+                                                    </div>
+                                                    <div class="d-flex justify-content-between mb-2" style="font-size: 12px;">
+                                                        <span></span>
+                                                        <span>Remaining: ₱ {{ number_format($entry['remaining_balance'] ?? 0, 2) }}</span>
+                                                    </div>
+                                                @endforeach
+                                            </div>
+                                        @endif
                                     @endif
                                 </div>
                             @endif

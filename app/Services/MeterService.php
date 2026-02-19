@@ -318,10 +318,7 @@ class MeterService {
 
     public static function getPayments(string $filter, string $zone = null, string $date = null, string $search = null)
     {
-        $isPaid = $filter === 'paid';
-
-        $bills = Bill::with(['reading', 'client']) // Include client relationship
-            ->where('isPaid', $isPaid)
+        $billsQuery = Bill::with(['reading', 'client']) // Include client relationship
             ->whereHas('reading', function ($query) use ($zone, $date) {
                 $query->where('isReRead', false);
 
@@ -350,6 +347,8 @@ class MeterService {
                         $sub->whereHas('reading', fn ($r) =>
                             $r->where('account_no', 'like', "%$keyword%")
                         )
+                        ->orWhere('bill_account_no', 'like', "%$keyword%")
+                        ->orWhereRaw('LOWER(bill_owner_name) LIKE ?', ["%$keyword%"])
                         ->orWhereHas('reading.concessionaire.user', function ($u) use ($keyword) {
                             $u->whereRaw('LOWER(name) LIKE ?', ["%$keyword%"]) // matches "Orge, Lucivil"
 
@@ -366,7 +365,19 @@ class MeterService {
                     });
                 }
             });
-        })->get();
+        });
+
+        if ($filter === 'paid') {
+            $billsQuery->where('isPaid', true);
+        } elseif ($filter === 'partial') {
+            $billsQuery->where('isPaid', false)->where('isPartial', true);
+        } else {
+            $billsQuery->where('isPaid', false)->where(function ($q) {
+                $q->whereNull('isPartial')->orWhere('isPartial', false);
+            });
+        }
+
+        $bills = $billsQuery->get();
 
         if ($zone === 'all') {
             if (!empty($date)) {

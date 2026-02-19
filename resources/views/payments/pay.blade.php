@@ -20,6 +20,9 @@
                             <div id="bill" style="margin-top: 30px">
                                 <div class="bill-container">
                                     <div style="position: relative; width: 100%; max-width: 450px; margin: 0 auto; padding: 25px; background: white; border-radius: 5px; box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);">
+                                    <div class="alert alert-secondary py-2 px-3 mb-3 text-uppercase fw-bold text-center" style="font-size: 11px;">
+                                        SOA Snapshot (Fixed)
+                                    </div>
                                             @if($data['current_bill']['isPaid'] == true)
                                         <div class="isPaid" style="padding: 10px 30px 10px 30px; position: absolute; right: -10px; top: 4px; text-transform: uppercase; color: red; letter-spacing: 3px; font-size: 12px; font-weight: 600">
                                             PAID
@@ -166,11 +169,15 @@
                                                 }
                                             }
                                         $advance_payment = collect($data['current_bill']['advances'] ?? [])->sum();
+                                        $soaCurrentBilling = max(
+                                            (float)($data['current_bill']['total'] ?? 0) - (float)($data['current_bill']['previous_unpaid'] ?? 0),
+                                            0
+                                        );
                                         @endphp
                                         <div style="margin: 5px 0 5px 0; width: 100%; height: 1px; border-bottom: 1px dashed black;"></div>
                                         <div class="oversized" style="display: flex; justify-content: space-between; margin: 5px 0 5px 0;">
                                             <div style="font-size: 20px; font-weight: 800; text-transform: uppercase">Current Billing:</div>
-                                            <div style="font-size: 20px; font-weight: 800; text-transform: uppercase">₱ {{number_format($data['current_bill']['total'] - $data['current_bill']['previous_unpaid'], 2)}}</div>
+                                            <div style="font-size: 20px; font-weight: 800; text-transform: uppercase">₱ {{number_format($soaCurrentBilling, 2)}}</div>
                                         </div>
 
                                         @if($arrearsStack->isNotEmpty())
@@ -364,6 +371,9 @@
                         </div>
                         <div class="col-12 col-md-6">
                             @if(!$data['current_bill']['isPaid'])
+                                <div class="alert alert-info py-2 px-3 mt-4 mb-3 text-uppercase fw-bold text-center" style="font-size: 11px;">
+                                    Payment Summary (Dynamic)
+                                </div>
                                 @php
                                     $total = (float)($data['current_bill']['total'] ?? 0);
                                     $dbPenalty = (float)($data['current_bill']['penalty'] ?? 0);
@@ -408,6 +418,35 @@
                                         PHP {{number_format($amountAmountDue, 2)}}
                                     </h3>
                                 </div>
+
+                                @if(($data['current_bill']['isPartial'] ?? 0) == 1)
+                                    <div class="alert alert-warning mt-3 mb-3">
+                                        <div class="fw-bold text-uppercase">Partial Payment Notice</div>
+                                        <div>Partial paid: <strong>PHP {{ number_format((float)($data['current_bill']['partial_payment'] ?? 0), 2) }}</strong></div>
+                                        <div>Remaining balance: <strong>PHP {{ number_format((float)($data['current_bill']['remaining_balance'] ?? 0), 2) }}</strong></div>
+                                    </div>
+
+                                    @php
+                                        $partialLedger = $data['current_bill']['partial_ledger'] ?? [];
+                                    @endphp
+                                    @if(!empty($partialLedger))
+                                        <div class="card mt-2 mb-3">
+                                            <div class="card-body">
+                                                <h6 class="mb-3 text-uppercase fw-bold">Partial Payment Ledger</h6>
+                                                @foreach($partialLedger as $entry)
+                                                    <div class="d-flex justify-content-between" style="font-size: 13px;">
+                                                        <span>{{ \Carbon\Carbon::parse($entry['created_at'])->format('M d, Y h:i A') }}</span>
+                                                        <span>Paid: PHP {{ number_format((float)($entry['partial_payment'] ?? 0), 2) }}</span>
+                                                    </div>
+                                                    <div class="d-flex justify-content-between mb-2" style="font-size: 12px;">
+                                                        <span></span>
+                                                        <span>Remaining: PHP {{ number_format((float)($entry['remaining_balance'] ?? 0), 2) }}</span>
+                                                    </div>
+                                                @endforeach
+                                            </div>
+                                        </div>
+                                    @endif
+                                @endif
                                 <div class="card mt-4">
                                     <div class="card-body">
                                         <div class="mb-3">
@@ -477,7 +516,7 @@
                                                     $current_billing = (float)$data['current_bill']['total'];
                                                     $hasAdvancePayment = $data['current_bill']['isChangeForAdvancePayment'];
                                                     $advancePayment = (float) $data['current_bill']['advances'] ?? 0;
-                                                    $newCurrentBilling = $current_billing - $prevUnpaid;
+                                                    $newCurrentBilling = max($current_billing - $prevUnpaid, 0);
 
                                                     if($hasAdvancePayment) {
                                                         $current_billing =  $current_billing - $advancePayment ;

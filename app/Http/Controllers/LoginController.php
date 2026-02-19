@@ -50,6 +50,12 @@ class LoginController extends Controller
             ]);
         }
 
+        if ($user instanceof User && !$user->hasVerifiedEmail()) {
+            return back()->withErrors([
+                'email' => 'Please verify your registered email address before logging in.'
+            ]);
+        }
+
         if ($user instanceof User && in_array($user->user_type, ['concessionaire', 'user', 'client'])) {
             if ($user->current_session_id && $user->current_session_id !== session()->getId()) {
                 session()->getHandler()->destroy($user->current_session_id);

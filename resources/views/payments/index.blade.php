@@ -10,9 +10,9 @@
                         class="btn btn-outline-primary px-5 py-3 text-uppercase">
                          Upload Billing
                      </a>
-                    <a href="{{ route('payments.index', ['filter' => $filter === 'paid' ? 'unpaid' : 'paid']) }}"
+                    <a href="{{ route('payments.index', ['filter' => $filter === 'partial' ? 'unpaid' : 'partial']) }}"
                         class="btn btn-primary px-5 py-3 text-uppercase">
-                         View {{ $filter === 'paid' ? 'Unpaid' : 'Paid' }}
+                         View {{ $filter === 'partial' ? 'Unpaid' : 'Partial' }}
                      </a>
                 </div>
             </div>
@@ -32,6 +32,7 @@
                         <label class="mb-1">Filter</label>
                         <select name="filter" id="filter" class="form-select text-uppercase dropdown-toggle">
                             <option value="unpaid" {{$filter == 'unpaid' ? 'selected' : ''}}>UnPaid</option>
+                            <option value="partial" {{$filter == 'partial' ? 'selected' : ''}}>Partial</option>
                             <option value="paid" {{$filter == 'paid' ? 'selected' : ''}}>Paid</option>
                         </select>
                     </div>
@@ -88,6 +89,7 @@
                                 <th>Reading Date</th>
                                 <th>Bill Date</th>
                                 <th>Amount</th>
+                                <th>Status</th>
                                 <th>Due Date</th>
                                 <th>Actions</th>
                             </tr>
@@ -96,8 +98,8 @@
                             @forelse ($data as $index => $row)
                                 <tr>
                                     <td>{{ $index + 1 }}</td>
-                                    <td>{{ $row->reading->account_no ?? 'N/A' }}</td>
-                                    <td>{{ $row->reading?->concessionaire?->user?->name ?? 'N/A' }}</td>
+                                    <td>{{ $row->bill_account_no ?? $row->reading->account_no ?? 'N/A' }}</td>
+                                    <td>{{ $row->bill_owner_name ?? $row->reading?->concessionaire?->user?->name ?? 'N/A' }}</td>
                                     <td>{{ $row->reading->zone ?? 'N/A' }}</td>
                                     <td>
                                         @if ($row->bill_period_from && $row->bill_period_to)
@@ -118,7 +120,27 @@
                                             ? \Carbon\Carbon::parse($row->bill_period_to)->format('M d, Y')
                                             : 'N/A' }}
                                     </td>
-                                    <td>₱{{ number_format((float)($row->total ?? 0), 2) }}</td>
+                                    @php
+                                        $partialPaid = (float)($row->partial_payment ?? 0);
+                                        if ($partialPaid <= 0 && !$row->isPaid && $row->isPartial) {
+                                            $partialPaid = (float)($row->amount_paid ?? 0);
+                                        }
+                                        $remaining = max(
+                                            (float)($row->total ?? 0) - $partialPaid,
+                                            0
+                                        );
+                                        $amountToShow = $row->isPartial ? $remaining : (float)($row->total ?? 0);
+                                    @endphp
+                                    <td>₱{{ number_format($amountToShow, 2) }}</td>
+                                    <td>
+                                        @if($row->isPaid)
+                                            <span class="badge bg-primary">Paid</span>
+                                        @elseif($row->isPartial)
+                                            <span class="badge bg-warning text-dark">Partial</span>
+                                        @else
+                                            <span class="badge bg-danger">Unpaid</span>
+                                        @endif
+                                    </td>
                                     <td>
                                         {{ !empty($row->due_date)
                                             ? \Carbon\Carbon::parse($row->due_date)->format('M d, Y')
@@ -143,7 +165,7 @@
                                 </tr>
                             @empty
                             <tr>
-                                <td colspan="12">
+                                <td colspan="13">
                                     <div class="text-uppercase text-center">No Data Found</div>
                                 </td>
                             </tr>
