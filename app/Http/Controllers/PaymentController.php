@@ -37,7 +37,7 @@ class PaymentController extends Controller
 {
     $filter = $request->filter ?? '';
 
-    if (!in_array($filter, ['unpaid', 'partial', 'paid'], true)) {
+    if (!in_array($filter, ['unpaid', 'paid'], true)) {
         return redirect()->route('payments.index', ['filter' => 'unpaid']);
     }
 
@@ -327,29 +327,16 @@ class PaymentController extends Controller
         ]);
     }
 
-    $partialLedger = PartialPayment::where('reading_id', $currentBill['reading_id'])
-        ->orderByDesc('created_at')
-        ->get(['partial_payment', 'remaining_balance', 'created_at']);
+    // 🔹 Deduct previous partial payment (important new part)
+    if (!empty($currentBill['isPartial']) && $currentBill['isPartial'] == 1) {
+        $partialAmount = floatval($currentBill['partial_payment'] ?? 0);
+        $remaining = floatval($currentBill['total'] ?? 0);
 
-    $ledgerPartialTotal = (float) $partialLedger->sum('partial_payment');
-    $recordedPartial = (float) ($currentBill['partial_payment'] ?? 0);
-    $amountPaid = (float) ($currentBill['amount_paid'] ?? 0);
-    $isPartialBill = !empty($currentBill['isPartial']);
-    $isPaidBill = !empty($currentBill['isPaid']);
+        if ($remaining < 0) $remaining = 0;
 
-    $effectivePartial = max($recordedPartial, $ledgerPartialTotal);
-    if ($isPartialBill && !$isPaidBill) {
-        $effectivePartial = max($effectivePartial, $amountPaid);
+        // Update total due shown to user
+        $data['current_bill']['total'] = $remaining;
     }
-
-    $data['current_bill']['partial_payment'] = $effectivePartial;
-    $data['current_bill']['partial_ledger'] = $partialLedger->toArray();
-    $data['current_bill']['remaining_balance'] = max(
-        (float) ($data['current_bill']['total'] ?? 0) - $effectivePartial,
-        0
-    );
-
-    // Keep SOA figures immutable; partial/paid details are handled in payment summaries only.
 
     // 🧾 Compute arrears stack
     $arrearsStack = collect();
@@ -746,19 +733,9 @@ class PaymentController extends Controller
                 return null;
             }
             $days_before_due = 15;
-            if (!empty($billData['due_date'])) {
-                $due = Carbon::parse($billData['due_date'])->endOfDay();
-            } else {
-                $due = Carbon::now()->addDays($days_before_due)->endOfDay();
-            }
-
-            // HitPay requires expiry_date to be in the future – clamp if bill is already overdue
-            $now = Carbon::now();
-            if ($due->lessThanOrEqualTo($now)) {
-                $due = $now->copy()->addHours(1);
-            }
-
-            $due_date = $due->format('Y-m-d H:i:s');
+            $due_date = !empty($billData['due_date'])
+            ? Carbon::parse($billData['due_date'])->endOfDay()->format('Y-m-d H:i:s')
+            : Carbon::now()->addDays($days_before_due)->endOfDay()->format('Y-m-d H:i:s');
 
 
             // dd($billData);
@@ -811,7 +788,6 @@ class PaymentController extends Controller
                 $final_amount = round($amount + $additional_service_fee, 2);
             }
 
-            // 🧾 Purpose formatting
             if (!empty($payload['metadata']['partial_payment'])) {
                 $purpose = "Partial Payment: PHP {$amount}\nConvenience Fee Included\nAccount #: {$account_no}";
             } else {
@@ -834,10 +810,6 @@ class PaymentController extends Controller
                 'payment_methods' => array_values($paymentMethods),
                 'expiry_date' => $due_date,
             ];
-
-            if (!empty($payload['metadata']) && is_array($payload['metadata'])) {
-                $hitpayPayload['metadata'] = $payload['metadata'];
-            }
 
             // dd($hitpayPayload);
 
@@ -876,6 +848,7 @@ class PaymentController extends Controller
             abort(404, 'Invalid payment reference.');
         }
 
+        // ✅ Step 1: Verify payment details with HitPay
         $response = \Http::withHeaders([
             'X-BUSINESS-API-KEY' => env('HITPAY_API_KEY'),
         ])->get(env('HITPAY_API_URL') . "/payment-requests/{$hitpay_reference}");
@@ -901,14 +874,17 @@ class PaymentController extends Controller
         $reference_number = $payment['reference_number'] ?? null;
         $amount = (float) ($payment['amount'] ?? 0);
         $payor = $payment['name'] ?? 'Unknown';
-        $metadata = $payment['metadata'] ?? [];
-        $purpose = (string) ($payment['purpose'] ?? '');
-        $source = $metadata['source'] ?? null;
-        $sourceAccountNo = $metadata['account_no'] ?? null;
 
+        // ✅ Step 2: Find bill
         $bill = \App\Models\Bill::where('hitpay_reference', $hitpay_reference)
             ->orWhere('reference_no', $reference_number)
             ->first();
+
+        $days_before_due = 15;
+        $due_date = !empty($bill['due_date'])
+            ? Carbon::parse($bill['due_date'])->format('M d, Y H:i:s')
+            : Carbon::now()->addDays($days_before_due)->format('M d, Y H:i:s');
+
 
         if (!$bill) {
             \Log::warning("HitPay verify: Bill not found for {$hitpay_reference}");
@@ -924,70 +900,45 @@ class PaymentController extends Controller
             ]);
         }
 
-        $days_before_due = 15;
-        $due_date = !empty($bill['due_date'])
-            ? Carbon::parse($bill['due_date'])->format('M d, Y H:i:s')
-            : Carbon::now()->addDays($days_before_due)->format('M d, Y H:i:s');
-
         if (in_array($status, ['completed', 'succeeded', 'success'])) {
-            $isPartialFromMetadata = filter_var($metadata['partial_payment'] ?? false, FILTER_VALIDATE_BOOLEAN);
-            $isPartialFromPurpose = stripos($purpose, 'partial payment') !== false;
-            $isPartial = $isPartialFromMetadata || $isPartialFromPurpose;
 
-            if ($isPartial) {
-                $partialAmount = (float) ($metadata['partial_amount'] ?? 0);
-                if ($partialAmount <= 0 && preg_match('/Partial Payment:\s*PHP\s*([0-9]+(?:\.[0-9]+)?)/i', $purpose, $matches)) {
-                    $partialAmount = (float) $matches[1];
-                }
-                if ($partialAmount <= 0) {
-                    $partialAmount = $amount;
-                }
+        // 🔎 Detect partial payment from metadata
+        $metadata = $payment['metadata'] ?? [];
+        $isPartial = !empty($metadata['partial_payment']);
 
-                $previousPartial = (float) ($bill->partial_payment ?? 0);
-                $totalAmountPaid = (float) ($bill->amount_paid ?? 0);
-                $remainingBalance = (float) ($bill->amount ?? 0) - ($previousPartial + $partialAmount);
+        if ($isPartial) {
 
-                $bill->update([
-                    'isPartial' => 1,
-                    'partial_payment' => $previousPartial + $partialAmount,
-                    'isPaid' => 0,
-                    'amount_paid' => $totalAmountPaid + $partialAmount,
-                    'payor_name' => $payor,
-                    'date_paid' => now(),
-                    'payment_method' => 'online',
-                ]);
+            $partialAmount = (float) ($metadata['partial_amount'] ?? 0);
 
-                \App\Models\PartialPayment::create([
-                    'reading_id' => $bill->reading_id,
-                    'partial_payment' => $partialAmount,
-                    'remaining_balance' => max($remainingBalance, 0),
-                ]);
-            } else {
-                $bill->update([
-                    'isPaid' => 1,
-                    'isPartial' => 0,
-                    'amount_paid' => $amount,
-                    'partial_payment' => null,
-                    'payor_name' => $payor,
-                    'date_paid' => now(),
-                    'payment_method' => 'online',
-                ]);
-            }
+            $bill->update([
+                'isPartial' => 1,
+                'partial_payment' => $partialAmount,
+                'isPaid' => 0,
+                'amount_paid' => null,
+                'payor_name' => $payor,
+                'date_paid' => now(),
+                'payment_method' => 'online',
+            ]);
 
-            if ($source === 'account_overview') {
-                $accountNo = $sourceAccountNo ?: optional($bill->reading)->account_no;
-                if (!empty($accountNo)) {
-                    return redirect()->route('account-overview.bills', [
-                        'account_no' => $accountNo,
-                        'view' => 'unpaid',
-                    ])->with('alert', [
-                        'status' => 'success',
-                        'message' => $isPartial
-                            ? 'Partial payment has been recorded.'
-                            : 'Payment has been completed successfully.',
-                    ]);
-                }
-            }
+            \App\Models\PartialPayment::create([
+                'reading_id' => $bill->reading_id,
+                'partial_payment' => $partialAmount,
+                'remaining_balance' => max(($bill->amount ?? 0) - $partialAmount, 0),
+            ]);
+
+        } else {
+
+            // FULL PAYMENT
+            $bill->update([
+                'isPaid' => 1,
+                'isPartial' => 0,
+                'amount_paid' => $amount,
+                'partial_payment' => null,
+                'payor_name' => $payor,
+                'date_paid' => now(),
+                'payment_method' => 'online',
+            ]);
+        }
 
             return view('payments.status', [
                 'payload' => [
@@ -1002,16 +953,7 @@ class PaymentController extends Controller
             ]);
         }
 
-        if ($source === 'account_overview' && !empty($sourceAccountNo)) {
-            return redirect()->route('account-overview.bills', [
-                'account_no' => $sourceAccountNo,
-                'view' => 'unpaid',
-            ])->with('alert', [
-                'status' => 'error',
-                'message' => 'Payment was not completed or was canceled.',
-            ]);
-        }
-
+        // ❌ Step 4: Failed or canceled
         return view('payments.status', [
             'payload' => [
                 'title' => 'Payment Failed',
@@ -1030,7 +972,7 @@ class PaymentController extends Controller
         return DataTables::of($query)
             ->addIndexColumn()
             ->editColumn('account_no', function($row) {
-                return $row->bill_account_no ?? $row->reading->account_no ?? 'N/A';
+                return $row->reading->account_no ?? 'N/A';
             })
             ->editColumn('billing_period', function ($row) {
                 return ($row->bill_period_from && $row->bill_period_to)
@@ -1043,13 +985,7 @@ class PaymentController extends Controller
                     : 'N/A';
             })
             ->editColumn('amount', function ($row) {
-                $partialPaid = (float) ($row->partial_payment ?? 0);
-                if ($partialPaid <= 0 && !$row->isPaid && $row->isPartial) {
-                    $partialPaid = (float) ($row->amount_paid ?? 0);
-                }
-                $remaining = max((float)($row->total ?? 0) - $partialPaid, 0);
-                $amount = $row->isPartial ? $remaining : (float)($row->amount ?? 0);
-                return '₱' . number_format($amount, 2);
+                return '₱' . number_format((float)($row->amount ?? 0), 2);
             })
             ->editColumn('due_date', function ($row) {
                 return !empty($row->due_date)
@@ -1057,13 +993,9 @@ class PaymentController extends Controller
                     : 'N/A';
             })
             ->editColumn('status', function ($row) {
-                if ($row->isPaid) {
-                    return '<div class="alert alert-primary mb-0 py-1 px-2 text-center">Paid</div>';
-                }
-                if ($row->isPartial) {
-                    return '<div class="alert alert-warning mb-0 py-1 px-2 text-center">Partial</div>';
-                }
-                return '<div class="alert alert-danger mb-0 py-1 px-2 text-center">Unpaid</div>';
+                return $row->isPaid
+                    ? '<div class="alert alert-primary mb-0 py-1 px-2 text-center">Paid</div>'
+                    : '<div class="alert alert-danger mb-0 py-1 px-2 text-center">Unpaid</div>';
             })
             ->addColumn('actions', function ($row) {
                 if(!$row->isPaid) {
