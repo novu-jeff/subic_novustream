@@ -2,6 +2,9 @@
     RewriteEngine On
     RewriteBase /
 
+    # App version JSON (standalone PHP, written by upload-apk.php)
+    RewriteRule ^app-version$ app-version.php [L]
+
     # Redirect Trailing Slashes If Not A Folder...
     RewriteCond %{REQUEST_FILENAME} !-d
     RewriteCond %{REQUEST_URI} (.+)/$

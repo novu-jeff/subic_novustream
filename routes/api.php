@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\MeterController;
 use App\Http\Controllers\Api\ReprintController;
 use App\Http\Controllers\Api\SyncController;
 use App\Http\Controllers\PaymentController;
+use App\Http\Controllers\ReadingController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\OfflineDataController;
@@ -33,6 +34,15 @@ Route::fallback(function () {
 
 Route::post('login', [LoginController::class, 'login']);
 Route::post('logout', [LoginController::class, 'logout']);
+
+// Flutter app: GET /api/app-version (set baseUrl / appVersionUrl in lib/config/merchant_config.dart)
+Route::get('app-version', function () {
+    return response()->json([
+        'version'      => env('APP_VERSION', '1.0.0'),
+        'build_number' => (int) env('APP_BUILD_NUMBER', 1),
+        'apk_url'      => env('APK_URL', ''),
+    ]);
+});
 
 Route::post('transaction/callback', [CallbackController::class, 'save'])
     ->name('transaction.callback');
@@ -65,7 +75,11 @@ Route::prefix('v1')->group(function() {
 
 
 Route::post('/offline/reading-sync', [ReadingController::class, 'store'])
+    ->middleware('log.offline.api')
     ->withoutMiddleware([\App\Http\Middleware\VerifyCsrfToken::class])
     ->name('api.reading.sync');
 
+Route::middleware('log.offline.api')->group(function () {
     Route::get('/offline/download', [OfflineDataController::class, 'download']);
+    Route::get('/offline/reading-dates', [OfflineDataController::class, 'readingDates']);
+});
