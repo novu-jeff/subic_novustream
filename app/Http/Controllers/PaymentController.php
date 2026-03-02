@@ -740,12 +740,19 @@ class PaymentController extends Controller
 
             // dd($billData);
             $rateCode = $result['data']['client']['rate_code'] ?? null;
-            $amount = (float) $billData['total'];
-            $discount = !empty($billData['discount'][0]['amount'])
-                ? (float) $billData['discount'][0]['amount']
-                : 0;
 
-            $amount = $amount - $discount;
+            // ✅ Use payload amount if partial payment
+            if (!empty($payload['metadata']['partial_payment'])) {
+                $amount = (float) $payload['metadata']['partial_amount'];
+            } else {
+                $amount = (float) $billData['total'];
+
+                $discount = !empty($billData['discount'][0]['amount'])
+                    ? (float) $billData['discount'][0]['amount']
+                    : 0;
+
+                $amount = $amount - $discount;
+            }
 
             // dd($amount, $discount);
 
@@ -775,9 +782,17 @@ class PaymentController extends Controller
             $hitpay_fee = round($selected_fee, 1);
             $additional_service_fee = $hitpay_fee + $novupay_fee;
 
-            $final_amount = round($amount + $additional_service_fee, 2);
-            // 🧾 Purpose formatting
-            $purpose = "Amount Due: PHP {$amount}\nConvenience Fee: PHP {$additional_service_fee}\nAccount #: {$account_no}";
+            if (!empty($payload['metadata']['partial_payment'])) {
+                $final_amount = (float) $payload['amount'];
+            } else {
+                $final_amount = round($amount + $additional_service_fee, 2);
+            }
+
+            if (!empty($payload['metadata']['partial_payment'])) {
+                $purpose = "Partial Payment: PHP {$amount}\nConvenience Fee Included\nAccount #: {$account_no}";
+            } else {
+                $purpose = "Amount Due: PHP {$amount}\nConvenience Fee: PHP {$additional_service_fee}\nAccount #: {$account_no}";
+            }
 
             $hitpayPayload = [
                 'amount' => $final_amount,
@@ -885,15 +900,45 @@ class PaymentController extends Controller
             ]);
         }
 
-        // ✅ Step 3: Mark bill as paid if successful
         if (in_array($status, ['completed', 'succeeded', 'success'])) {
+
+        // 🔎 Detect partial payment from metadata
+        $metadata = $payment['metadata'] ?? [];
+        $isPartial = !empty($metadata['partial_payment']);
+
+        if ($isPartial) {
+
+            $partialAmount = (float) ($metadata['partial_amount'] ?? 0);
+
             $bill->update([
-                'isPaid' => 1,
-                'amount_paid' => $amount,
+                'isPartial' => 1,
+                'partial_payment' => $partialAmount,
+                'isPaid' => 0,
+                'amount_paid' => null,
                 'payor_name' => $payor,
                 'date_paid' => now(),
                 'payment_method' => 'online',
             ]);
+
+            \App\Models\PartialPayment::create([
+                'reading_id' => $bill->reading_id,
+                'partial_payment' => $partialAmount,
+                'remaining_balance' => max(($bill->amount ?? 0) - $partialAmount, 0),
+            ]);
+
+        } else {
+
+            // FULL PAYMENT
+            $bill->update([
+                'isPaid' => 1,
+                'isPartial' => 0,
+                'amount_paid' => $amount,
+                'partial_payment' => null,
+                'payor_name' => $payor,
+                'date_paid' => now(),
+                'payment_method' => 'online',
+            ]);
+        }
 
             return view('payments.status', [
                 'payload' => [

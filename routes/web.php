@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AccountEnrollmentController;
 use App\Http\Controllers\AccountOverviewController;
 use App\Http\Controllers\ConcessionaireController;
 use App\Http\Controllers\DashboardController;
@@ -22,6 +23,7 @@ use App\Http\Controllers\ReportsController;
 use Illuminate\Support\Facades\Artisan;
 use App\Http\Controllers\OfflineSyncController;
 use App\Http\Controllers\OfflineDataController;
+use App\Http\Controllers\Auth\VerificationController;
 
 /*
 |--------------------------------------------------------------------------
@@ -44,8 +46,6 @@ Route::get('/login', [LoginController::class, 'index'])
 Route::post('/login', [LoginController::class, 'login'])
     ->name('auth.login');
 
-Route::get('/login', [LoginController::class, 'index']);
-
 Route::any('/logout', [LoginController::class, 'logout'])
     ->name('auth.logout');
 
@@ -56,6 +56,10 @@ Route::get('/register', [RegisterController::class, 'showRegistrationForm'])
 // Handle register form
 Route::post('/register', [RegisterController::class, 'register'])
     ->name('auth.register.store');
+
+Route::get('/email/verify/{id}/{hash}', [VerificationController::class, 'verify'])
+    ->middleware(['signed', 'throttle:6,1'])
+    ->name('verification.verify');
 
 
 Route::middleware('auth:admins')->prefix('admin')->group(function () {
@@ -252,7 +256,15 @@ Route::middleware('auth')->prefix('concessionaire')->group(function() {
             ->name('account-overview.bills');
         Route::get('bills/{reference_no?}', [AccountOverviewController::class, 'bills'])
             ->name('account-overview.bills.reference_no');
+        Route::post('bills/{reference_no}/partial', [AccountOverviewController::class, 'payPartial'])
+            ->name('account-overview.bills.partial');
     });
+    Route::get('accounts/enroll', [AccountEnrollmentController::class, 'index'])
+        ->name('account-enrollment.index');
+    Route::post('accounts/enroll/lookup', [AccountEnrollmentController::class, 'lookup'])
+        ->name('account-enrollment.lookup');
+    Route::post('accounts/enroll/verify', [AccountEnrollmentController::class, 'verifyAndEnroll'])
+        ->name('account-enrollment.verify');
 
     Route::prefix('/support')->group(function() {
         Route::prefix('/ticket/submit')->group(function() {

@@ -34,8 +34,13 @@
             margin-bottom: 20px;
             padding: 20px;
         }
+        .top {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
         .icon {
-            background-color: #dc3545;
+            background-color: #32667e;
             border-radius: 50%;
             width: 50px;
             height: 50px;
@@ -45,6 +50,9 @@
         }
         .icon.success {
             background-color: #28a745;
+        }
+        .icon.error {
+            background-color: #32667e;
         }
         .header {
             text-align: center;
@@ -78,6 +86,28 @@
         }
         .bottom button:last-child {
             background-color: #e9ecef;
+        }
+
+        /* Print styles - hide buttons and help section when printing */
+        @media print {
+            body {
+                background-color: white;
+            }
+            .outer-wrapper {
+                min-height: auto;
+            }
+            .wrapper {
+                box-shadow: none;
+                page-break-inside: avoid;
+            }
+            /* Hide buttons when printing */
+            .bottom {
+                display: none !important;
+            }
+            /* Hide help center section when printing */
+            .others {
+                display: none !important;
+            }
         }
     </style>
 </head>

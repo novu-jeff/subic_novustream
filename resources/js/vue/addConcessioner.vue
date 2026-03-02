@@ -44,20 +44,30 @@
                         </div>
                         <div class="col-md-4 mb-3">
                             <label for="password" class="form-label">Password <small class="text-danger"> ( required )</small></label>
-                            <input type="password"
-                                    class="form-control" id="password"
-                                    v-model="concessioner.password"
-                                    :class="{ 'is-invalid': errors && errors.password }"
-                                    >
+                            <div class="input-group">
+                                <input :type="showPassword ? 'text' : 'password'"
+                                        class="form-control" id="password"
+                                        v-model="concessioner.password"
+                                        :class="{ 'is-invalid': errors && errors.password }"
+                                        >
+                                <button type="button" class="btn btn-outline-secondary" @click="showPassword = !showPassword">
+                                    <i :class="showPassword ? 'bx bx-hide' : 'bx bx-show'"></i>
+                                </button>
+                            </div>
                             <small v-if="errors.password" class="text-danger px-1">{{ errors.password[0] }}</small>
                         </div>
                         <div class="col-md-4 mb-3">
                             <label for="password_confirmation" class="form-label">Confirm Password <small class="text-danger"> ( required )</small></label>
-                            <input type="password"
-                                    class="form-control" id="password_confirmation"
-                                    v-model="concessioner.password_confirmation"
-                                    :class="{ 'is-invalid': errors && errors.password_confirmation }"
-                                    >
+                            <div class="input-group">
+                                <input :type="showPasswordConfirm ? 'text' : 'password'"
+                                        class="form-control" id="password_confirmation"
+                                        v-model="concessioner.password_confirmation"
+                                        :class="{ 'is-invalid': errors && errors.password_confirmation }"
+                                        >
+                                <button type="button" class="btn btn-outline-secondary" @click="showPasswordConfirm = !showPasswordConfirm">
+                                    <i :class="showPasswordConfirm ? 'bx bx-hide' : 'bx bx-show'"></i>
+                                </button>
+                            </div>
                             <small v-if="errors.password_confirmation" class="text-danger px-1">{{ errors.password_confirmation[0] }}</small>
                         </div>
                     </div>
@@ -231,123 +241,6 @@
                         <small v-if="errors['accounts.' + index + '.sequence_no']" class="text-danger px-1">{{ errors['accounts.' + index + '.sequence_no'][0] }}</small>
                     </div>
                 </div>
-                <div class="row">
-                    <div class="col-md-6 mb-3">
-                        <label :for="'meter_brand_' + index" class="form-label">
-                          Meter Brand
-                        </label>
-                        <input type="text" class="form-control"
-                                :id="'meter_brand_' + index"
-                                v-model="account.meter_brand"
-                                :class="{ 'is-invalid': errors && errors['accounts.' + index + '.meter_brand'] }"
-                                >
-                        <small v-if="errors['accounts.' + index + '.meter_brand']" class="text-danger px-1">{{ errors['accounts.' + index + '.meter_brand'][0] }}</small>
-                    </div>
-                    <div class="col-md-6 mb-3">
-                        <label :for="'meter_type_' + index" class="form-label">
-                          Meter Type
-                        </label>
-                        <input type="text" class="form-control"
-                              :id="'meter_type_' + index"
-                              v-model="account.meter_type"
-                              :class="{ 'is-invalid': errors && errors['accounts.' + index + '.meter_type'] }"
-                              >
-                        <small v-if="errors['accounts.' + index + '.meter_type']" class="text-danger px-1">{{ errors['accounts.' + index + '.meter_type'][0] }}</small>
-                    </div>
-                    <div class="col-md-7 mb-3">
-                        <label :for="'meter_wire_' + index" class="form-label">
-                          Meter Wire
-                        </label>
-                        <input type="text" class="form-control"
-                                :id="'meter_wire_' + index"
-                                v-model="account.meter_wire"
-                                :class="{ 'is-invalid': errors && errors['accounts.' + index + '.meter_type'] }"
-                                >
-                    </div>
-                    <div class="col-md-5 mb-3">
-                        <label :for="'meter_form_' + index" class="form-label">
-                          Meter Form
-                        </label>
-                        <input type="text" class="form-control"
-                                  :id="'meter_form_' + index"
-                                  v-model="account.meter_form"
-                                  :class="{ 'is-invalid': errors && errors['accounts.' + index + '.meter_form'] }"
-                                  >
-                        <small v-if="errors['accounts.' + index + '.meter_type']" class="text-danger px-1">{{ errors['accounts.' + index + '.meter_form'][0] }}</small>
-                    </div>
-                    <div class="col-md-5 mb-3">
-                        <label :for="'meter_class_' + index" class="form-label">
-                          Meter Class
-                        </label>
-                        <input type="text" class="form-control"
-                                :id="'meter_class_' + index"
-                                v-model="account.meter_class"
-                                :class="{ 'is-invalid': errors && errors['accounts.' + index + '.meter_class'] }"
-                                >
-                        <small v-if="errors['accounts.' + index + '.meter_class']" class="text-danger px-1">{{ errors['accounts.' + index + '.meter_class'][0] }}</small>
-                    </div>
-                    <div class="col-md-4 mb-3">
-                        <label :for="'lat_long_' + index" class="form-label">
-                          Latitude/Longitude
-                        </label>
-                        <input type="text" class="form-control"
-                                :id="'lat_long_' + index"
-                                v-model="account.lat_long"
-                                :class="{ 'is-invalid': errors && errors['accounts.' + index + '.lat_long'] }"
-                                >
-                        <small v-if="errors['accounts.' + index + '.lat_long']" class="text-danger px-1">{{ errors['accounts.' + index + '.lat_long'][0] }}</small>
-                    </div>
-                    <div class="col-md-3 mb-3">
-                        <label :for="'isErcSealed_' + index" class="form-label">
-                          ERC Sealed
-                        </label>
-                        <select class="form-select"
-                                :id="'isErcSealed_' + index"
-                                v-model="account.isErcSealed"
-                                :class="{ 'is-invalid': errors && errors['accounts.' + index + '.isErcSealed'] }"
-                                >
-                          <option :value="null">-- SELECT --</option>
-                          <option :value="1">Yes</option>
-                          <option :value="0">No</option>
-                        </select>
-                        <small v-if="errors['accounts.' + index + '.isErcSealed']" class="text-danger px-1">{{ errors['accounts.' + index + '.isErcSealed'][0] }}</small>
-                    </div>
-                    <div class="col-md-12 mb-3">
-                      <label :for="'inspectionImage_' + index" class="form-label">
-                        Upload Inspection Image
-                      </label>
-                      <input
-                        type="file"
-                        class="form-control"
-                        :id="'inspectionImage_' + index"
-                        @change="handleFileUpload($event, index)"
-                        :class="{ 'is-invalid': errors && errors['accounts.' + index + '.inspectionImage'] }"
-                      />
-                      <small v-if="errors['accounts.' + index + '.inspectionImage']" class="text-danger px-1">
-                        {{ errors['accounts.' + index + '.inspectionImage'][0] }}
-                      </small>
-                    </div>
-                    <div v-if="account.inspection_image" class="col-md-12 mb-3">
-                      <label :for="'inspectedImage' + index" class="form-label">
-                        Inspection Image
-                      </label>
-                      <div class="card shadow mt-2">
-                        <div class="card-body">
-                          <div v-if="account.inspection_image" class="col-md-12 mb-3">
-                            <div class="lightgallery" :id="'lightgallery-' + index">
-                              <a :href="getImageSrc(account)">
-                                <img
-                                  :src="getImageSrc(account)"
-                                  alt="Inspection Preview"
-                                  class="w-100 mt-2 image-inspected"
-                                />
-                              </a>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                  </div>
-                </div>
               </div>
             </div>
           </div>
@@ -398,6 +291,8 @@ export default {
     return {
       loading: false,
       disableValidation: true,
+      showPassword: false,
+      showPasswordConfirm: false,
       concessioner: {
         name: '',
         contact_no: '',

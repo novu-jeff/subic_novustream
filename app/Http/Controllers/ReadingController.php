@@ -26,6 +26,7 @@ use App\Models\Discount;
 use App\Models\DiscountType;
 use App\Models\PaymentBreakdownPenalty;
 use App\Models\PartialPayment;
+use App\Models\PropertyTypes;
 
 
 class ReadingController extends Controller
@@ -245,8 +246,8 @@ class ReadingController extends Controller
                 ]);
             }
         } else {
-            // $url = env('NOVUPAY_URL') . '/payment/merchants/' . $reference_no;
-            $url = 'https://staritawaterdistrictpamp.gov.ph/'; // ✅ Fallback NovuPay link (temporary)
+            $url = env('NOVUPAY_URL') . '/payment/merchants/' . $reference_no;
+            // $url = 'https://staritawaterdistrictpamp.gov.ph/'; // ✅ Fallback NovuPay link (temporary)
         }
 
 
@@ -510,9 +511,9 @@ class ReadingController extends Controller
         ], 400);
     }
 
-    $isTemporaryBillingOverride =
-    $date->year === 2026 &&
-    $date->month === 1; // January 2026 billing only
+    // $isTemporaryBillingOverride =
+    // $date->year === 2026 &&
+    // $date->month === 1; // January 2026 billing only
 
     $month = $date->month;
     $year = $date->year;
@@ -618,89 +619,89 @@ class ReadingController extends Controller
         $penaltyAmount = 0;
 
         //disposable
-        $billPeriodFrom = null;
-        $billPeriodTo = null;
-        $billDate = null;
-        $dueDate = null;
-        $penaltyDate = null;
-        $disconnectionDate = null;
+        // $billPeriodFrom = null;
+        // $billPeriodTo = null;
+        // $billDate = null;
+        // $dueDate = null;
+        // $penaltyDate = null;
+        // $disconnectionDate = null;
 
-        if ($isTemporaryBillingOverride) {
+        // if ($isTemporaryBillingOverride) {
 
-            $prefix = substr($account_no, 0, 3);
+        //     $prefix = substr($account_no, 0, 3);
 
-            $bookRules = [
-                'B1-B5' => [
-                    'prefixes' => ['011','021','031','041','051'],
-                    'from' => '2025-12-01',
-                    'to'   => '2026-01-03',
-                    'bill_day' => '2026-01-03',
-                ],
-                'B6-B8' => [
-                    'prefixes' => ['061','071','081'],
-                    'from' => '2025-12-02',
-                    'to'   => '2026-01-05',
-                    'bill_day' => '2026-01-05',
-                ],
-                'B9-B11' => [
-                    'prefixes' => ['091','101','111'],
-                    'from' => '2025-12-03',
-                    'to'   => '2026-01-06',
-                    'bill_day' => '2026-01-06',
-                ],
-            ];
+        //     $bookRules = [
+        //         'B1-B5' => [
+        //             'prefixes' => ['011','021','031','041','051'],
+        //             'from' => '2025-12-01',
+        //             'to'   => '2026-01-03',
+        //             'bill_day' => '2026-01-03',
+        //         ],
+        //         'B6-B8' => [
+        //             'prefixes' => ['061','071','081'],
+        //             'from' => '2025-12-02',
+        //             'to'   => '2026-01-05',
+        //             'bill_day' => '2026-01-05',
+        //         ],
+        //         'B9-B11' => [
+        //             'prefixes' => ['091','101','111'],
+        //             'from' => '2025-12-03',
+        //             'to'   => '2026-01-06',
+        //             'bill_day' => '2026-01-06',
+        //         ],
+        //     ];
 
-            foreach ($bookRules as $rule) {
-                if (in_array($prefix, $rule['prefixes'])) {
+        //     foreach ($bookRules as $rule) {
+        //         if (in_array($prefix, $rule['prefixes'])) {
 
-                    $billPeriodFrom = Carbon::parse($rule['from']);
-                    $billPeriodTo   = Carbon::parse($rule['to']);
-                    $billDate       = Carbon::parse($rule['bill_day']);
-                    $dueDate        = $billDate->copy()->addDays(15);
-                    $penaltyDate    = $dueDate->copy()->addDay();
-                    $disconnectionDate = $dueDate->copy()->addDays(7);
-                    break;
-                }
-            }
-        }
+        //             $billPeriodFrom = Carbon::parse($rule['from']);
+        //             $billPeriodTo   = Carbon::parse($rule['to']);
+        //             $billDate       = Carbon::parse($rule['bill_day']);
+        //             $dueDate        = $billDate->copy()->addDays(15);
+        //             $penaltyDate    = $dueDate->copy()->addDay();
+        //             $disconnectionDate = $dueDate->copy()->addDays(7);
+        //             break;
+        //         }
+        //     }
+        // }
 
-        // Save bill
-        // $bill = Bill::updateOrCreate(
-        //     ['reference_no' => $reference_no],
-        //     [
-        //         'account_no' => $account_no,
-        //         'amount' => $amount + $penaltyAmount,
-        //         'penalty' => $penaltyAmount,
-        //         'discount' => $computed['bill']['discount'] ?? 0,
-        //         'amount_after_due' => $computed['bill']['amount_after_due'] ?? $amount,
-        //         'high_consumption_note' => $payload['high_consumption_note'] ?? null,
-        //     ]
-        // );
-
+        //Save bill
         $bill = Bill::updateOrCreate(
             ['reference_no' => $reference_no],
-            array_filter([
+            [
                 'account_no' => $account_no,
                 'amount' => $amount + $penaltyAmount,
                 'penalty' => $penaltyAmount,
                 'discount' => $computed['bill']['discount'] ?? 0,
                 'amount_after_due' => $computed['bill']['amount_after_due'] ?? $amount,
                 'high_consumption_note' => $payload['high_consumption_note'] ?? null,
-
-                // TEMPORARY OVERRIDE
-                'bill_period_from' => $billPeriodFrom,
-                'bill_period_to' => $billPeriodTo,
-                'created_at' => $billDate,
-                'due_date' => $dueDate,
-                'penalty_date' => $penaltyDate,
-                'disconnection_date' => $disconnectionDate,
-            ])
+            ]
         );
 
-        $bill->created_at = $billDate;
-        $bill->saveQuietly();
+        // $bill = Bill::updateOrCreate(
+        //     ['reference_no' => $reference_no],
+        //     array_filter([
+        //         'account_no' => $account_no,
+        //         'amount' => $amount + $penaltyAmount,
+        //         'penalty' => $penaltyAmount,
+        //         'discount' => $computed['bill']['discount'] ?? 0,
+        //         'amount_after_due' => $computed['bill']['amount_after_due'] ?? $amount,
+        //         'high_consumption_note' => $payload['high_consumption_note'] ?? null,
 
-        $today = Carbon::today();
+        //         // TEMPORARY OVERRIDE
+        //         'bill_period_from' => $billPeriodFrom,
+        //         'bill_period_to' => $billPeriodTo,
+        //         'created_at' => $billDate,
+        //         'due_date' => $dueDate,
+        //         'penalty_date' => $penaltyDate,
+        //         'disconnection_date' => $disconnectionDate,
+        //     ])
+        // );
+
+        // $bill->created_at = $billDate;
+        // $bill->saveQuietly();
+
+        // $today = Carbon::today();
 
         $discountRecord = Discount::where('account_no', $account->account_no)
             // ->whereDate('effective_date', '<=', $today)
@@ -993,23 +994,31 @@ class ReadingController extends Controller
             ]);
         }
 
-        // 🔑 Property type from concessioner_accounts
-        $propertyType = strtoupper(
-            $data['current_bill']['reading']['concessioner_account']['property_type'] ?? ''
-        );
+        $accountNo = $data['current_bill']['reading']['account_no'] ?? '';
+        $name = $data['client']['name'] ?? '';
+        $address = $data['client']['address'] ?? '';
 
-        // 🧮 Walk-in fee logic
-        $isResidential = str_contains($propertyType, 'RESIDENTIAL 1/2');
+        $rateCode = null;
+        if (preg_match('/^\d{3}-(\d{2})-\d+$/', $accountNo, $matches)) {
+            $rateCode = $matches[1];
+        }
 
+        $isResidential = $rateCode === '12';
         $walkInFee = $isResidential ? 8.00 : 23.00;
 
+        $propertyTypeName = PropertyTypes::where('rate_code', $rateCode)
+            ->value('name') ?? 'Unknown Property Type';
+
         return view('reading.orwalkin', [
-            'data'         => $data,
-            'reference_no' => $reference_no,
-            'walkInFee'    => $walkInFee,
-            'propertyType' => $propertyType,
+            'data'              => $data,
+            'reference_no'      => $reference_no,
+            'walkInFee'         => $walkInFee,
+            'rateCode'          => $rateCode,
+            'propertyTypeName'  => $propertyTypeName,
+            'accountNo'         => $accountNo,
+            'name'              => $name,
+            'address'           => $address,
         ]);
     }
-
 
 }

@@ -20,11 +20,9 @@ class AdminController extends Controller
     public function __construct(AdminService $adminService, RoleService $roleService) {
 
         $this->middleware(function ($request, $next) {
-
-            if (!Gate::any(['admin'])) {
-                abort(403, 'Unauthorized');
+            if (!Gate::allows('superadmin')) {
+                abort(403, 'Only Superadmin can manage personnels.');
             }
-
             return $next($request);
         });
 

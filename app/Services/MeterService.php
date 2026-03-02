@@ -318,10 +318,7 @@ class MeterService {
 
     public static function getPayments(string $filter, string $zone = null, string $date = null, string $search = null)
     {
-        $isPaid = $filter === 'paid';
-
-        $bills = Bill::with(['reading', 'client']) // Include client relationship
-            ->where('isPaid', $isPaid)
+        $billsQuery = Bill::with(['reading', 'client']) // Include client relationship
             ->whereHas('reading', function ($query) use ($zone, $date) {
                 $query->where('isReRead', false);
 
@@ -350,6 +347,8 @@ class MeterService {
                         $sub->whereHas('reading', fn ($r) =>
                             $r->where('account_no', 'like', "%$keyword%")
                         )
+                        ->orWhere('bill_account_no', 'like', "%$keyword%")
+                        ->orWhereRaw('LOWER(bill_owner_name) LIKE ?', ["%$keyword%"])
                         ->orWhereHas('reading.concessionaire.user', function ($u) use ($keyword) {
                             $u->whereRaw('LOWER(name) LIKE ?', ["%$keyword%"]) // matches "Orge, Lucivil"
 
@@ -366,14 +365,29 @@ class MeterService {
                     });
                 }
             });
-        })->get();
+        });
+
+        if ($filter === 'paid') {
+            $billsQuery->where('isPaid', true);
+        } elseif ($filter === 'partial') {
+            $billsQuery->where('isPaid', false)->where('isPartial', true);
+        } else {
+            $billsQuery->where('isPaid', false)->where(function ($q) {
+                $q->whereNull('isPartial')->orWhere('isPartial', false);
+            });
+        }
+
+        $bills = $billsQuery->get();
 
         if ($zone === 'all') {
             if (!empty($date)) {
-                return $bills->groupBy(fn($bill) => $bill->created_at->toDateString())
-                            ->map(fn($group) => $group->values())
-                            ->values()
-                            ->all();
+                return $bills->groupBy(function ($bill) {
+                        $created = $bill->created_at ?? optional($bill->reading)->created_at;
+                        return $created ? $created->toDateString() : 'Unknown';
+                    })
+                    ->map(fn($group) => $group->values())
+                    ->values()
+                    ->all();
             }
 
             return $bills->values();
@@ -384,7 +398,10 @@ class MeterService {
                 if (!empty($date)) {
                     return array_values(
                         $groupedByZone
-                            ->groupBy(fn($bill) => $bill->created_at->toDateString())
+                            ->groupBy(function ($bill) {
+                                $created = $bill->created_at ?? optional($bill->reading)->created_at;
+                                return $created ? $created->toDateString() : 'Unknown';
+                            })
                             ->map(fn($groupedByDate) => $groupedByDate->values())
                             ->values()
                             ->all()
@@ -477,6 +494,15 @@ class MeterService {
         $bill_period_from = $current_bill->bill_period_from;
         $previousConsumption = self::previousConsumption($account_no, $bill_period_from);
         unset($client['accounts']);
+
+        // Freeze visible SOA/bill identity to bill snapshot data.
+        // Fallback to legacy fields for old records without snapshots.
+        $client['name'] = !empty(trim((string) $current_bill->bill_owner_name))
+            ? $current_bill->bill_owner_name
+            : (!empty(trim((string) $current_bill->payor_name)) ? $current_bill->payor_name : ($client['name'] ?? null));
+        $client['account_no'] = $current_bill->bill_account_no ?: ($client['account_no'] ?? $account_no);
+        $client['address'] = $current_bill->bill_address ?: ($client['address'] ?? null);
+        $client['meter_serial_no'] = $current_bill->bill_meter_serial_no ?: ($client['meter_serial_no'] ?? null);
 
         return [
             'client' => $client,
@@ -821,6 +847,14 @@ class MeterService {
 
         $generatedReferenceNo = $this->generateReferenceNo();
 
+        // Snapshot ownership/account details at billing time.
+        // This prevents SOA/bill identity from changing when account ownership is transferred later.
+        $accountHolder = UserAccounts::where('account_no', $payload['account_no'])->with('user')->first();
+        $payorName = $accountHolder && $accountHolder->user ? $accountHolder->user->name : null;
+        $billAccountNo = $payload['account_no'] ?? null;
+        $billAddress = $accountHolder->address ?? null;
+        $billMeterNo = $accountHolder->meter_serial_no ?? null;
+
         $bill = [
             'reference_no' => $generatedReferenceNo,
             'bill_period_from' => $bill_period_from,
@@ -836,6 +870,11 @@ class MeterService {
             'amount_after_due' => $amount_after_due,
             'due_date' => $due_date,
             'isHighConsumption' => $isHighConsumption,
+            'payor_name' => $payorName,
+            'bill_owner_name' => $payorName,
+            'bill_account_no' => $billAccountNo,
+            'bill_address' => $billAddress,
+            'bill_meter_serial_no' => $billMeterNo,
             'created_at' => $bill_period_to,
             'updated_at' => $bill_period_to,
         ];

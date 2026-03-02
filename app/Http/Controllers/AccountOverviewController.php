@@ -13,6 +13,7 @@ use Yajra\DataTables\Facades\DataTables;
 use Illuminate\Support\Facades\DB;
 use App\Models\PaymentBreakdownPenalty;
 use App\Models\Bill;
+use App\Models\PartialPayment;
 
 class AccountOverviewController extends Controller
 {
@@ -151,15 +152,42 @@ public function index()
     if ($reference_no) {
     $data = $this->meterService::getBill($reference_no);
 
-    if (!$data) {
-        return redirect()->route('reading.index')->with('alert', [
+    if (!$data || !isset($data['client'])) {
+        return redirect()->route('account-overview.index')->with('alert', [
             'status' => 'error',
             'message' => 'Bill Not Found',
         ]);
     }
 
+    // Concessionaire may only view bills for their enrolled accounts
+    $billAccountNo = $data['client']['account_no'] ?? $data['current_bill']['reading']['account_no'] ?? null;
+    $clientData = $this->clientService::getData($userId);
+    $myAccountNos = collect($clientData->accounts ?? [])->pluck('account_no')->toArray();
+    if ($billAccountNo && !in_array($billAccountNo, $myAccountNos)) {
+        return redirect()->route('account-overview.index')->with('alert', [
+            'status' => 'error',
+            'message' => 'You do not have access to this bill.',
+        ]);
+    }
+
     // Compute penalties
     $data['current_bill'] = $this->computeBillPenalty($data['current_bill']);
+    $currentBill = $data['current_bill'];
+    $readingId = $currentBill['reading_id'] ?? null;
+    $partialLedger = [];
+
+    if ($readingId) {
+        $partialLedger = PartialPayment::where('reading_id', $readingId)
+            ->orderByDesc('created_at')
+            ->get(['partial_payment', 'remaining_balance', 'created_at'])
+            ->toArray();
+    }
+
+    $data['current_bill']['partial_ledger'] = $partialLedger;
+    $data['current_bill']['remaining_balance'] = max(
+        (float) ($currentBill['total'] ?? 0) - (float) ($currentBill['partial_payment'] ?? 0),
+        0
+    );
 
     // 🧮 Use dynamic penalty computation (from PaymentBreakdownPenalty)
         $amount = (float)($currentBill['total'] ?? 0);
@@ -171,14 +199,14 @@ public function index()
             ->where('due_to', '>=', $currentDay)
             ->first();
 
-        $penalty = $statement['current_bill']['penalty'] ?? 0;
-        $dueDate = isset($data['current_bill']['due_date'])
-                        ? \Carbon\Carbon::parse($data['current_bill']['due_date'])
-                        : null;
+        $penalty = $currentBill['penalty'] ?? 0;
+        $dueDate = isset($currentBill['due_date'])
+            ? \Carbon\Carbon::parse($currentBill['due_date'])
+            : null;
 
         $today = \Carbon\Carbon::today();
 
-        $applicablePenalty = ($dueDate && $today->gt($dueDate)) ? $penalty : 0;
+        $applicablePenalty = ($dueDate && $today->gt($dueDate)) ? (float) $penalty : 0;
 
         // ✅ Always ensure defaults
         $assumedPenalty = 0;
@@ -251,7 +279,7 @@ public function index()
     $validAccountNos = $accounts->pluck('account_no')->toArray();
 
     $isAccountNoValid = !empty($account_no) && in_array($account_no, $validAccountNos);
-    $isViewValid = in_array($view, ['unpaid', 'paid']);
+    $isViewValid = in_array($view, ['unpaid', 'paid', 'partial']);
 
     if ((!$isAccountNoValid) && !$isViewValid) {
         if ($account_no !== null || $view !== null) {
@@ -260,10 +288,19 @@ public function index()
     }
 
     $statements = [];
-    $isPaid = $view === 'paid';
-
     foreach ($accounts as $account) {
-        $bills = $this->meterService::getBills($account->account_no, true, $isPaid);
+        if ($view === 'paid') {
+            $bills = $this->meterService::getBills($account->account_no, true, true);
+        } else {
+            $bills = $this->meterService::getBills($account->account_no, true, false);
+            $bills = array_values(array_filter($bills, function ($bill) use ($view) {
+                $isPartial = !empty($bill['isPartial']);
+                if ($view === 'partial') {
+                    return $isPartial;
+                }
+                return !$isPartial;
+            }));
+        }
 
         if (!empty($bills)) {
             // Compute penalty for each bill
@@ -364,9 +401,15 @@ public function index()
                 : '₱' . number_format($row['amount'], 2);
         })
         ->editColumn('status', function ($row) {
-            return $row['isPaid']
-                ? '<div class="alert alert-primary mb-0 py-1 px-2 text-center">Paid</div>'
-                : '<div class="alert alert-danger mb-0 py-1 px-2 text-center">Unpaid</div>';
+            if (!empty($row['isPaid'])) {
+                return '<div class="alert alert-primary mb-0 py-1 px-2 text-center">Paid</div>';
+            }
+
+            if (!empty($row['isPartial'])) {
+                return '<div class="alert alert-warning mb-0 py-1 px-2 text-center">Partial</div>';
+            }
+
+            return '<div class="alert alert-danger mb-0 py-1 px-2 text-center">Unpaid</div>';
         })
         ->addColumn('actions', function ($row) {
             $reference_no = $row['reference_no'] ?? null;
@@ -475,5 +518,64 @@ public function index()
 
     return $bill;
 }
+
+
+    public function payPartial(Request $request, string $reference_no)
+    {
+        $request->validate([
+            'amount' => 'required|numeric|min:1'
+        ]);
+
+        $userId = Auth::id();
+        $clientData = $this->clientService::getData($userId);
+
+        $bill = $this->meterService::getBill($reference_no);
+
+        if (!$bill) {
+            return back()->with('alert', [
+                'status' => 'error',
+                'message' => 'Bill not found.'
+            ]);
+        }
+
+        $partialAmount = (float) $request->amount;
+
+        // Add service charges
+        $hitpay_fee = 20;
+        $novupay_fee = 10;
+        // $additional_service_fee = $hitpay_fee + $novupay_fee;
+        $additional_service_fee = 0;
+        $finalAmount = $partialAmount + $additional_service_fee;
+
+        $payload = [
+            'reference_no' => $reference_no,
+            'amount' => $finalAmount,
+            'customer' => [
+                'name' => $clientData->name ?? '',
+                'account_no' => $bill['current_bill']['account_no'] ?? '',
+                'address' => $bill['current_bill']['address'] ?? '',
+            ],
+            'metadata' => [
+                'partial_payment' => true,
+                'original_amount' => $bill['current_bill']['amount'] ?? 0,
+                'partial_amount' => $partialAmount,
+                'source' => 'account_overview',
+                'account_no' => $bill['current_bill']['account_no'] ?? '',
+            ]
+        ];
+
+        $hitpayData = app(\App\Http\Controllers\PaymentController::class)
+            ->createHitpayPaymentRequest($reference_no, $payload);
+
+        if (!$hitpayData || empty($hitpayData['url'])) {
+            return back()->with('alert', [
+                'status' => 'error',
+                'message' => 'Failed to initiate partial payment.'
+            ]);
+        }
+
+        return redirect($hitpayData['url']);
+    }
+
 
 }

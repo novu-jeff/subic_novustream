@@ -734,19 +734,6 @@ localforage.config({ name: 'StaritaOfflineReadings' });
 const STORAGE_KEY = 'offline_readings';
 const MASTER_KEY = 'offline_master_data';
 
-/* ===========================================================
-   🌐 ONLINE/OFFLINE STATUS BAR
-   =========================================================== */
-if (!document.querySelector('#statusBar')) {
-  document.body.insertAdjacentHTML('afterbegin', `
-    <div id="statusBar" style="
-      position:fixed;top:0;left:0;width:100%;
-      text-align:center;padding:6px;font-weight:bold;
-      color:white;z-index:9999;background:#32cd32;">
-      🟢 Online
-    </div>
-  `);
-}
 function showNotify(type, message, opts = {}) {
   // type: 'success' | 'error' | 'info'
   if (window.Notyf) {
@@ -797,10 +784,6 @@ async function handleOnlineReconnect() {
 
 // register listener once
 window.addEventListener('online', handleOnlineReconnect);
-// Ensure any UI elements that trigger download call this function
-$(document).off('click', '#downloadOffline').on('click', '#downloadOffline', downloadOfflineData);
-$(document).off('click', '#downloadOfflineData').on('click', '#downloadOfflineData', downloadOfflineData);
-
 // --- Notify user when manual sync is done (if caller uses syncOfflineReadings directly) ---
 async function triggerSyncAndNotify() {
   if (typeof syncOfflineReadings !== 'function') {
@@ -821,9 +804,6 @@ async function triggerSyncAndNotify() {
 $(document).off('click', '#syncOfflineNow').on('click', '#syncOfflineNow', triggerSyncAndNotify);
 
 window.addEventListener('offline', async () => {
-  const bar = document.querySelector('#statusBar');
-  bar.textContent = '🔴 Offline Mode';
-  bar.style.background = '#ff4d4d';
   await loadOfflineAccounts();
 });
 
@@ -896,54 +876,6 @@ window.addEventListener('offline', async () => {
     console.log('[SYNC COMPLETE]');
     }
 
-/* ===========================================================
-   📦 DOWNLOAD + AUTO-CACHE OFFLINE DATA
-   =========================================================== */
-async function downloadOfflineData() {
-  // Reusable notifier
-  const notify = (type, msg) => {
-    if (window.Notyf) {
-      const n = new Notyf({ duration: 3000, ripple: true });
-      if (type === 'success') n.success(msg);
-      else if (type === 'error') n.error(msg);
-      else n.open({ type: 'info', message: msg });
-    } else {
-      // fallback to alert()
-      alert(msg);
-    }
-  };
-
-  try {
-    notify('info', '📥 Downloading offline data… please wait.');
-
-    // const res = await fetch('{{ route("offline.download") }}');
-    // if (!res.ok) throw new Error(`Server responded with ${res.status}`);
-    // const data = await res.json();
-
-    console.table(data.accounts || []);
-    console.log('[OFFLINE] Data structure:', data);
-
-    // 🧠 Store each section separately for modular access later
-    await Promise.all([
-      localforage.setItem('offline_accounts', data.accounts),
-      localforage.setItem('offline_previous', data.previous_readings),
-      localforage.setItem('offline_rates', data.rates),
-      localforage.setItem('offline_meta', {
-        property_types: data.property_types,
-        discounts: data.discounts,
-        discount_types: data.discount_types,
-        penalties: data.penalties
-      })
-    ]);
-
-    console.log('[OFFLINE] ✅ Data saved locally:', data);
-    notify('success', '✅ Offline data downloaded successfully!');
-  } catch (err) {
-    console.error('[OFFLINE] ❌ Download failed:', err);
-    notify('error', '❌ Failed to download offline data. Please check your connection.');
-  }
-}
-
 /* AUTO-CACHE every fetchAccountData() call */
 (function patchFetchAccountData() {
   const oldFetch = window.fetchAccountData;
@@ -982,7 +914,7 @@ async function loadOfflineAccounts() {
   const result = document.querySelector('.concessionaire-result');
 
   if (!data || !data.accounts?.length) {
-    container.innerHTML = `<div class="alert alert-warning text-center">⚠️ No offline data found. Please go online and refresh or click "Download Offline Data".</div>`;
+    container.innerHTML = `<div class="alert alert-warning text-center">⚠️ No offline data found. Please go online and refresh.</div>`;
     return;
   }
 
@@ -1027,7 +959,7 @@ $(document).on('input', '#search', async function () {
   if (!accounts?.length) {
     console.warn('[OFFLINE SEARCH] No cached accounts found.');
     return $('#accountsContainer').html(`
-      <p class="text-center text-muted py-4">⚠️ No offline data available. Please download offline data first.</p>
+      <p class="text-center text-muted py-4">⚠️ No offline data available. Please go online and refresh.</p>
     `);
   }
 
@@ -1117,7 +1049,7 @@ $(document).on('click', '.account-card', async function () {
     console.log(`[DEBUG] Loaded ${cachedAccounts?.length || 0} offline accounts from cache.`);
 
     if (!cachedAccounts || !cachedAccounts.length) {
-      alert('❌ No offline data found. Please download offline data first.');
+      alert('❌ No offline data found. Please go online and refresh.');
       console.warn('[DEBUG] offline_accounts not found or empty.');
       return;
     }
@@ -1264,8 +1196,12 @@ $(document).off('click', '#proceedOffline').on('click', '#proceedOffline', async
     penaltyDate.setDate(penaltyDate.getDate() + 1);
 
     const refNo = data.reference_no || 'NST-SRWD-00' + Date.now();
-    const logoUrl = '{{ asset("images/client.png") }}';
+    const logoUrl = '{{ asset(config('app.client_logo')) }}';
     const qrUrl = '{{ asset("images/srwd_qr.png") }}';
+    const orgName = @json(config('app.org_name'));
+    const orgAddress = @json(config('app.org_address'));
+    const orgContact1 = @json(config('app.org_contact_line1'));
+    const orgContact2 = @json(config('app.org_contact_line2'));
     const reader = '{{ Auth::user()->name ?? "Offline Reader" }}';
     // 💧 Compute Basic Charge & Billing Amounts
     const offlineMasters = await localforage.getItem('offline_master_data');
@@ -1358,11 +1294,10 @@ $(document).off('click', '#proceedOffline').on('click', '#proceedOffline', async
         <div class="header">
             <img src="${logoUrl}" alt="Logo">
             <p>Republic of the Philippines</p>
-            <p style="font-size:15px;font-weight:700;">Sta. Rita Water District</p>
-            <p>Zone 6 Dila-Dila, Santa Rita, Pampanga</p>
-            <p>Facebook Page: Sta. Rita Water District</p>
-            <p>Cell No. 0917-103-2421 | 0917-104-7196</p>
-            <p>TIN 261-304-832-000 Non VAT</p>
+            <p style="font-size:15px;font-weight:700;">${orgName}</p>
+            <p>${orgAddress}</p>
+            <p>${orgContact1}</p>
+            <p>${orgContact2}</p>
         </div>
 
         <div class="title">Statement of Account</div>
@@ -1446,22 +1381,6 @@ $(document).off('click', '#proceedOffline').on('click', '#proceedOffline', async
     w.document.close();
     setTimeout(() => w.print(), 600);
     }
-/* ===========================================================
-   🧩 ADD MANUAL DOWNLOAD BUTTON
-   =========================================================== */
-$(document).ready(function () {
-  if (!$('#downloadOfflineData').length) {
-    $('.inner-content').prepend(`
-      <div class="text-end mb-3">
-        <button id="downloadOfflineData" class="btn btn-success">
-          <i class="bx bx-download"></i> Download Offline Data
-        </button>
-      </div>
-    `);
-  }
-});
-$(document).on('click', '#downloadOfflineData', downloadOfflineData);
-
 async function selectOfflineAccount(accountNo) {
   const previousCache = (await localforage.getItem('offline_previous')) || {};
   const prevReading = previousCache[accountNo] ?? 0;

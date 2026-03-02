@@ -237,7 +237,7 @@
             $currentUrl = url()->current();
             $fallbackUrl = Auth::user()->user_type == 'client' ? route('account-overview.show') : route('reading.index');
             $backUrl = ($previousUrl !== $currentUrl) ? $previousUrl : $fallbackUrl;
-            $logoPath = public_path('images/client.png');
+            $logoPath = public_path(config('app.client_logo'));
             $base64 = 'data:image/png;base64,' . base64_encode(file_get_contents($logoPath));
         @endphp
 
@@ -329,7 +329,7 @@
             <div class="wd-header-container" style="padding-top: 0.1in;">
                 {{-- Placeholder for Logo (adjust positioning as needed) --}}
                 {{-- If you have the actual logo path, replace 'visibility:hidden' --}}
-                <img src="{{ asset('images/client.png') }}"
+                <img src="{{ asset(config('app.client_logo')) }}"
                 alt="logo"
                 class="web-logo"
                 style="width: 20%; height: auto; ">

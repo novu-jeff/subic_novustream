@@ -4,7 +4,6 @@ namespace App\Http\Middleware;
 
 use Closure;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Hash;
 
 class CheckDefaultPassword
 {
@@ -12,9 +11,8 @@ class CheckDefaultPassword
     {
         $user = Auth::user();
 
-        // Check if user is logged in and password is default
-        if ($user && Hash::check('password', $user->password)) {
-            // Set a session flag to show modal in Blade
+        // Check if user is logged in and password is default (safe for non-bcrypt stored values)
+        if ($user && passwordVerifyAndUpgrade('password', $user->password, null)) {
             session()->flash('using_default_password', true);
         }
 

@@ -214,7 +214,7 @@
             $currentUrl = url()->current();
             $fallbackUrl = Auth::user()->user_type == 'client' ? route('account-overview.show') : route('reading.index');
             $backUrl = ($previousUrl !== $currentUrl) ? $previousUrl : $fallbackUrl;
-            $logoPath = public_path('images/client.png');
+            $logoPath = public_path(config('app.client_logo'));
             $base64 = 'data:image/png;base64,' . base64_encode(file_get_contents($logoPath));
         @endphp
 
@@ -291,7 +291,7 @@
     <!-- AGENCY -->
     <div style="display:flex; gap:8px; align-items:center;">
       <div class="row-label">Agency</div>
-      <div class="underline-field">SANTA RITA WATER DISTRICT</div>
+      <div class="underline-field">SUBIC WATER DISTRICT</div>
     </div>
 
     <!-- PAYOR -->
@@ -436,7 +436,7 @@
 
   {{-- Agency --}}
   <div style="position:absolute; top:3.9cm; left:1.2cm; font-size:11px;">
-    SANTA RITA WATER DISTRICT
+    SUBIC WATER DISTRICT
   </div>
 
   {{-- Payor --}}

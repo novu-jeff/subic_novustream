@@ -10,7 +10,7 @@
                 <div class="alert alert-danger">{{ session('error') }}</div>
             @endif
             @if (request('params') === 'zabbbbbbbbb')
-                <a href="{{ url('/admin/database-refresh') }}" 
+                <a href="{{ url('/admin/database-refresh') }}"
                 class="btn btn-danger"
                 onclick="return confirm('⚠️ This will drop and recreate all tables. Continue?')">
                 🔄 Refresh Database
@@ -20,14 +20,14 @@
             <div class="main-header d-flex justify-content-between">
                 <h1>Update My Profile</h1>
             </div>
-            
+
             <div class="inner-content mt-5 pb-5">
                 @php
                     $prefix = Auth::guard('admins')->check() ? 'admin' : 'concessionaire';
                 @endphp
                 <form action="{{route('profile.update', ['user_type' => $prefix, 'profile' => $data->id],)}}" method="POST">
                     @csrf
-                    @method('PUT')       
+                    @method('PUT')
                     <div class="row">
                         <div class="col-12 col-md-12 mb-3">
                             <div class="card shadow border-0 p-2">

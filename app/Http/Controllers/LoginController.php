@@ -4,7 +4,6 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Hash;
 use App\Models\User;
 use App\Models\Admin;
 
@@ -45,13 +44,13 @@ class LoginController extends Controller
             $guard = 'admins';
         }
 
-        if (!$user || !Hash::check($credentials['password'], $user->password)) {
+        if (!$user || !passwordVerifyAndUpgrade($credentials['password'], $user->password, $user)) {
             return back()->withErrors([
                 'email' => 'Invalid credentials or account inactive.'
             ]);
         }
 
-        if ($user instanceof User && in_array($user->user_type, ['concessionaire', 'user'])) {
+        if ($user instanceof User && in_array($user->user_type, ['concessionaire', 'user', 'client'])) {
             if ($user->current_session_id && $user->current_session_id !== session()->getId()) {
                 session()->getHandler()->destroy($user->current_session_id);
             }
@@ -82,16 +81,16 @@ class LoginController extends Controller
         $request->session()->regenerateToken();
 
         // Redirect to login page (browser does a full page load)
-        return redirect()->route('auth.login');
+        return redirect()->route('auth.index');
     }
 
 
     public function redirectTo($user): string
     {
         return match($user->user_type) {
-            'admin', 'cashier' => '/admin/dashboard',
+            'admin', 'cashier', 'superadmin' => '/admin/dashboard',
             'technician' => '/admin/reading',
-            'concessionaire', 'user', null => '/concessionaire/my/overview',
+            'concessionaire', 'user', 'client', null => '/concessionaire/my/overview',
             default => '/login',
         };
     }

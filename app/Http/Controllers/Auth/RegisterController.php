@@ -4,9 +4,11 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use Illuminate\Auth\Events\Registered;
 use Illuminate\Foundation\Auth\RegistersUsers;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Http\Request;
 
 class RegisterController extends Controller
 {
@@ -28,7 +30,19 @@ class RegisterController extends Controller
      *
      * @var string
      */
-    protected $redirectTo = '/login';
+    protected $redirectTo = '/concessionaire/my/overview';
+
+    public function register(Request $request)
+    {
+        $this->validator($request->all())->validate();
+
+        event(new Registered($user = $this->create($request->all())));
+
+        return redirect()->route('auth.index')->with(
+            'success',
+            'Registration successful. Please verify your registered email address before logging in.'
+        );
+    }
 
     /**
      * Create a new controller instance.
@@ -71,7 +85,7 @@ class RegisterController extends Controller
             'firstname' => $name[0] ?? '',
             'lastname' => $name[1] ?? '',
             'email' => $data['email'],
-            'user_type' => 'client',
+            'user_type' => 'concessionaire',
             'password' => Hash::make($data['password']),
         ]);
     }

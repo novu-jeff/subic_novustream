@@ -30,8 +30,12 @@ class AppServiceProvider extends ServiceProvider
 
             Auth::shouldUse('admins');
 
+            Gate::define('superadmin', function ($user) {
+                return $user->user_type === 'superadmin';
+            });
+
             Gate::define('admin', function ($user) {
-                return $user->user_type === 'admin';
+                return in_array($user->user_type, ['admin', 'superadmin']);
             });
 
             Gate::define('technician', function ($user) {

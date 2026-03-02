@@ -1,3 +1,4 @@
+import './password-toggle';
 import axios from 'axios';
 import { alert, remove , canvasDownload, convertDateToWords} from './helper';
 import { createApp } from 'vue';

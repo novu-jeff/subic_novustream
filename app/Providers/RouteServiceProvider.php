@@ -29,6 +29,8 @@ class RouteServiceProvider extends ServiceProvider
         });
 
         $this->routes(function () {
+            // GET /app-version is handled by public/app-version.php via .htaccess
+
             Route::middleware('api')
                 ->prefix('api')
                 ->group(base_path('routes/api.php'));

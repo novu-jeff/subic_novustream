@@ -21,7 +21,42 @@ return [
     'name' => env('APP_NAME', 'Laravel'),
     'product' => env('APP_PRODUCT', 'novustream'),
     'client' => env('CLIENT'),
+    'demo_branding' => filter_var(env('DEMO_BRANDING', true), FILTER_VALIDATE_BOOLEAN),
+    'client_logo' => filter_var(env('DEMO_BRANDING', true), FILTER_VALIDATE_BOOLEAN) ? 'images/client.png' : 'images/novustreamlogo.png',
+
+    // Organization branding (when DEMO_BRANDING=false, use Novustream white-label)
+    'org_name' => filter_var(env('DEMO_BRANDING', true), FILTER_VALIDATE_BOOLEAN)
+        ? 'Demo Water District'
+        : 'Novustream Water District',
+    'org_address' => filter_var(env('DEMO_BRANDING', true), FILTER_VALIDATE_BOOLEAN)
+        ? 'Demo Address, Demo City, Philippines'
+        : '35th Floor, Eco Tower, 9th Ave. Corner 32nd St., Bonifacio Global City, Taguig, Philippines',
+    'org_contact_line1' => filter_var(env('DEMO_BRANDING', true), FILTER_VALIDATE_BOOLEAN)
+        ? 'Email: demo@example.com'
+        : 'Email: support@novulutions.com',
+    'org_contact_line2' => filter_var(env('DEMO_BRANDING', true), FILTER_VALIDATE_BOOLEAN)
+        ? 'Tel: (02) 8888-0000'
+        : 'Tel: (02) 8888-1234',
     'offline_api_key' => env('OFFLINE_API_KEY'),
+
+    // Flutter app: GET /app-version
+    'version' => env('APP_VERSION', '1.0.1'),
+    'build_number' => (int) (env('APP_BUILD_NUMBER') ?: 2),
+    'apk_url' => env('APK_URL', ''),
+    'force_update' => filter_var(env('APP_FORCE_UPDATE', false), FILTER_VALIDATE_BOOLEAN),
+    'release_notes' => env('APP_RELEASE_NOTES', 'Bug fixes and performance improvements.'),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Enrollment Pool User ID (optional)
+    |--------------------------------------------------------------------------
+    |
+    | When set, accounts assigned to this user can be claimed by customers via
+    | self-enrollment. Leave null to only allow enrolling accounts that exist
+    | in readings but have no concessioner_accounts record yet.
+    |
+    */
+    'enrollment_pool_user_id' => env('ENROLLMENT_POOL_USER_ID') ? (int) env('ENROLLMENT_POOL_USER_ID') : null,
 
     /*
     |--------------------------------------------------------------------------
