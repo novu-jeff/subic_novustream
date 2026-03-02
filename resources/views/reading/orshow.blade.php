@@ -327,7 +327,7 @@
         {{-- Agency and Payor --}}
         <div class="d-flex gap-2 align-items-center mt-1">
             <div class="fw-bold" style="width: 10%; font-size: 10px;">Agency</div>
-            <div class="flex-grow-1 border-bottom border-dark px-2" style="font-size: 11px;">SANTA RITA WATER DISTRICT</div>
+            <div class="flex-grow-1 border-bottom border-dark px-2" style="font-size: 11px;">SUBIC WATER DISTRICT</div>
         </div>
         <div class="d-flex gap-2 align-items-center mt-1">
             <div class="fw-bold" style="width: 10%; font-size: 10px;">Payor</div>
@@ -488,7 +488,7 @@
 
   {{-- Agency --}}
   <div style="position:absolute; left: 1.5cm; top:7.0cm; font-size:12px;">
-    SANTA RITA WATER DISTRICT
+    SUBIC WATER DISTRICT
   </div>
 
   {{-- Payor --}}

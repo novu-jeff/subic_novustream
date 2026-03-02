@@ -291,7 +291,7 @@
     <!-- AGENCY -->
     <div style="display:flex; gap:8px; align-items:center;">
       <div class="row-label">Agency</div>
-      <div class="underline-field">SANTA RITA WATER DISTRICT</div>
+      <div class="underline-field">SUBIC WATER DISTRICT</div>
     </div>
 
     <!-- PAYOR -->
@@ -436,7 +436,7 @@
 
   {{-- Agency --}}
   <div style="position:absolute; top:3.9cm; left:1.2cm; font-size:11px;">
-    SANTA RITA WATER DISTRICT
+    SUBIC WATER DISTRICT
   </div>
 
   {{-- Payor --}}
